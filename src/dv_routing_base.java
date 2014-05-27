@@ -1,21 +1,24 @@
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.DatagramSocket;
+import java.net.SocketException;
 
 
 public class dv_routing_base {
 
 	public static void main(String[] args) {
-		if (args.length != 3 && args.length != 4) {
-			System.err.println("Error: invalid arguments");
-			System.err.println("Usage: [NODE_ID] [NODE_PORT] [CONFIG.TXT] [POISONED REVERSE FLAG|-p]");
-			return;
-		}
 		
 		char nodeID;
 		int port;
 		File config;
 		boolean poisonReverse = false;
+		UDP udp;
+		
+		if (args.length != 3 && args.length != 4) {
+			System.err.println("Usage: [NODE_ID] [NODE_PORT] [CONFIG.TXT] [POISONED REVERSE FLAG|-p]");
+			return;
+		}
 		
 		try {
 			if (args[0].length() != 1 || !args[0].matches("[A-Z]")) {
@@ -61,7 +64,26 @@ public class dv_routing_base {
 		System.out.println("Config File Path: "+config.getAbsolutePath());
 		System.out.println("Poison Reverse flag: "+(poisonReverse? "on":"off")+"\n");
 		
+		//#####################################################################
+		//input validation finished
 		
+		try {
+			udp = new UDP(port);				//open udp connections
+		} catch (SocketException e) {
+			System.err.println("could not create udp object");
+		}
+	}
+	
+	private static class UDP {
+		
+		private DatagramSocket serverSocket;
+		private DatagramSocket clientSocket;
+		
+		private UDP (int port) throws SocketException {
+			this.serverSocket = new DatagramSocket(port);
+			this.clientSocket = new DatagramSocket();
+		}
+
 	}
 
 }
