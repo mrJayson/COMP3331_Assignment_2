@@ -90,10 +90,9 @@ public class dv_routing_base {
 		try {
 			Map<Character, Integer> nodePorts = new HashMap<Character, Integer>();
 			g = initialise(nodeID, config, nodePorts);
-
 			g.printDT();
 			g.printDV();
-			udp = new UDP(port, nodePorts);				//open udp connections
+			udp = new UDP(port, nodePorts);				//open udp connection
 		} catch (DataFormatException e) {
 			System.err.println("Config file has invalid data");
 			return;
@@ -153,7 +152,6 @@ public class dv_routing_base {
 				nodePorts.put(nodeID, port);	//link node to port
 
 				g.addAdjacentNode(nodeID);
-				g.addKnownNode(nodeID);
 				g.updateDistance(nodeID, nodeID, distance);
 				//since all nodes at this point are adjacent nodes, the via node and to node are the same
 			}

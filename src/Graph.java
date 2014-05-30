@@ -38,18 +38,24 @@ class Graph implements Serializable{
 		}
 		this.adjacentNodes.add(nodeID);
 		this.distTable.put(nodeID, new HashMap<Character, Integer>());
+		//if an adjacent node is known, it is also known in knownNodes
+		addKnownNode(nodeID);
+		
 	}
 
 	void deleteAdjacentNode(Character nodeID) throws InputMismatchException {
-		if (!this.knownNodes.contains(nodeID) || !this.distTable.containsKey(nodeID)) {
+		if (!this.adjacentNodes.contains(nodeID) || !this.distTable.containsKey(nodeID)) {
 			throw new InputMismatchException();
 		}
-		this.knownNodes.remove(nodeID);
+		this.adjacentNodes.remove(nodeID);
 		this.distTable.remove(nodeID);
-		for (Character character : this.knownNodes) {
+		for (Character adjacent : this.adjacentNodes) {
 			//remove c entries in other rows
-			this.distTable.get(character).remove(nodeID);
+			this.distTable.get(adjacent).remove(nodeID);
 		}
+		//all adjacent nodes are in knownNodes, so delete there too
+		this.knownNodes.remove(nodeID);
+		updateDV();
 	}
 
 	void addKnownNode(Character nodeID) throws InputMismatchException {
@@ -58,33 +64,55 @@ class Graph implements Serializable{
 		}
 		this.knownNodes.add(nodeID);
 		this.distanceVector.put(nodeID, null);
+		//adding a new entry to distanceVector means there is no min yet
 	}
 
 	void deleteKnownNode(Character nodeID) throws InputMismatchException {
 		if (!this.knownNodes.contains(nodeID) || !this.distanceVector.containsKey(nodeID)) {
 			throw new InputMismatchException();
 		}
-		
+		if (this.adjacentNodes.contains(nodeID)) {
+			//if node to be deleted is an adjacent, let this function handle it
+			deleteAdjacentNode(nodeID);
+		} else {
+			this.distanceVector.remove(nodeID);
+			for (Character adjacent : this.adjacentNodes) {
+				System.out.println(adjacent);
+				this.distTable.get(adjacent).remove(nodeID);
+			}
+			this.knownNodes.remove(nodeID);
+		}
+		//deleting from distanceVector means the min entry is deleted without side-effects
 	}
 
 	void updateDistance(Character viaNode, Character toNode, int distance) throws InputMismatchException {
 		if (!this.adjacentNodes.contains(viaNode) || !this.knownNodes.contains(toNode)) {
 			throw new InputMismatchException();
 		}
-		
 		this.distTable.get(viaNode).put(toNode, distance);
-		int min = Integer.MAX_VALUE;
-		for (char adjacent : this.adjacentNodes) {
-			try {
-				if (min > this.distTable.get(adjacent).get(toNode)) {
-					min = this.distTable.get(adjacent).get(toNode);
+		updateDV();
+	}
+
+	void updateDV() {
+		Integer min;
+		for (char known : this.knownNodes) {
+			min = Integer.MAX_VALUE;
+			for (char adjacent : this.adjacentNodes) {
+				try {
+					if (min > this.distTable.get(adjacent).get(known)) {
+						min = this.distTable.get(adjacent).get(known);
+					}
+				} catch (NullPointerException e) {
+					//nulls represent infinite cost
+					//just catch and do nothing
 				}
-			} catch (NullPointerException e) {
-				//nulls represent infinite cost
-				//just catch and do nothing
 			}
+			if (min == Integer.MAX_VALUE) {
+				//means there is no min
+				min = null;
+			}
+			this.distanceVector.put(known, min);
 		}
-		this.distanceVector.put(toNode, min);
 	}
 
 	void printDT() {
