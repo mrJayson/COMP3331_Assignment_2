@@ -1,5 +1,7 @@
+
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.InputMismatchException;
@@ -10,78 +12,107 @@ import java.util.Set;
 
 
 
-public class Graph implements Serializable{
+class Graph implements Serializable{
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	private transient Map<Character, Integer> adjacentNodes = new HashMap<Character, Integer>();
-	private List<Character> nodeList;
+	private List<Character> adjacentNodes;
+	private List<Character> knownNodes;
+	//List of all the nodes this node is aware of
 	private Map<Character, Map<Character, Integer>> distTable;
 	//distTable is a 2d map so can map char,char to a distance
 	//first char is the via node, second char is the to node
+	private Map<Character, Integer> distanceVector;
 
-	public Graph() {
-		this.nodeList = new ArrayList<Character>();
+	Graph() {
+		this.knownNodes = new ArrayList<Character>();
+		this.adjacentNodes = new ArrayList<Character>();
 		this.distTable = new HashMap<Character, Map<Character, Integer>>();
+		this.distanceVector = new HashMap<Character, Integer>();
 	}
 
-	public void addNode(Character c) throws InputMismatchException {
-		if (this.nodeList.contains(c) || this.distTable.containsKey(c)) {
+	void addAdjacentNode(Character nodeID) throws InputMismatchException{
+		if (this.knownNodes.contains(nodeID) || this.distTable.containsKey(nodeID)) {
 			throw new InputMismatchException();
 		}
-		this.nodeList.add(c);
-		this.distTable.put(c, new HashMap<Character, Integer>());
+		this.adjacentNodes.add(nodeID);
+		this.distTable.put(nodeID, new HashMap<Character, Integer>());
 	}
-	
-	public void deleteNode(Character c) throws InputMismatchException {
-		if (!this.nodeList.contains(c) || !this.distTable.containsKey(c)) {
+
+	void deleteAdjacentNode(Character nodeID) throws InputMismatchException {
+
+	}
+
+	void addKnownNode(Character nodeID) throws InputMismatchException {
+		if (this.knownNodes.contains(nodeID) || this.distanceVector.containsKey(nodeID)) {
 			throw new InputMismatchException();
 		}
-		this.nodeList.remove(c);
-		this.distTable.remove(c);
-		for (Character character : this.nodeList) {
+		this.knownNodes.add(nodeID);
+		this.distanceVector.put(nodeID, null);
+	}
+
+	void deleteKnownNode(Character nodeID) throws InputMismatchException {
+		if (!this.knownNodes.contains(nodeID) || !this.distTable.containsKey(nodeID)) {
+			throw new InputMismatchException();
+		}
+		this.knownNodes.remove(nodeID);
+		this.distTable.remove(nodeID);
+		for (Character character : this.knownNodes) {
 			//remove c entries in other rows
-			this.distTable.get(character).remove(c);
+			this.distTable.get(character).remove(nodeID);
 		}
 	}
-	
-	public void setAdjacentNodes(Map<Character, Integer> adjacentNodes) {
-		this.adjacentNodes = adjacentNodes;
-	}
-	
-	public Map<Character, Integer> getAdjacentNodes() {
-		return this.adjacentNodes;
-	}
-	
-	public void updateDistance(Character viaNode, Character toNode, int distance) {
-		this.distTable.get(viaNode).put(toNode, distance);
-	}
 
-	public void printTable() {
-		for (char c1 : this.nodeList) {
-			for (char c2 : this.nodeList) {
-				try{
-				System.out.printf("%c %c %d\n", c1, c2, this.distTable.get(c1).get(c2));
-				} catch (Exception e) {
-					
+	void updateDistance(Character viaNode, Character toNode, int distance) throws InputMismatchException {
+		if (!this.adjacentNodes.contains(viaNode) || !this.knownNodes.contains(toNode)) {
+			throw new InputMismatchException();
+		}
+		
+		this.distTable.get(viaNode).put(toNode, distance);
+		int min = Integer.MAX_VALUE;
+		for (char adjacent : this.adjacentNodes) {
+			System.out.println(adjacent);
+			System.out.println(toNode);
+			try {
+				if (min > this.distTable.get(adjacent).get(toNode)) {
+					min = this.distTable.get(adjacent).get(toNode);
 				}
+			} catch (NullPointerException e) {
+				//nulls represent infinite cost
+				//just catch and do nothing
 			}
 		}
+		this.distanceVector.put(toNode, min);
 	}
-	public void printDistTable() {
+
+	void printDT() {
+		System.out.println("----------------------------------");
+		System.out.println("Distance Table");
+		System.out.println("----------------------------------");
 		System.out.printf("\t");
-		for (char c : this.nodeList) {
+		for (char c : this.adjacentNodes) {
 			System.out.printf("%c\t", c);
 		}
 		System.out.println();
-		
-		for (char c1 : this.nodeList) {
-			System.out.printf("%c\t", c1);
-			for (char c2 : this.nodeList) {
-				System.out.printf("%d\t", this.distTable.get(c2).get(c1));
+
+		for (char known : this.knownNodes) {
+			System.out.printf("%c\t", known);
+			for (char adjacent : this.adjacentNodes) {
+				System.out.printf("%d\t", this.distTable.get(adjacent).get(known));
 			}
 			System.out.println();
 		}
+		System.out.println("----------------------------------");
+	}
+
+	void printDV() {
+		System.out.println("----------------------------------");
+		System.out.println("Distance Vectors");
+		System.out.println("----------------------------------");
+		for (char known : this.knownNodes) {
+			System.out.printf("%c\t|\t%d\n", known, this.distanceVector.get(known));
+		}
+		System.out.println("----------------------------------");
 	}
 }

@@ -1,14 +1,24 @@
+
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.SocketException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.zip.DataFormatException;
 
 
@@ -21,6 +31,9 @@ public class dv_routing_base {
 		File config;
 		boolean poisonReversed = false;
 		UDP udp;
+		Graph g;
+		SyncQueue queue = new SyncQueue();
+		int pingIntervalMilli = 5000;
 
 		if (args.length != 3 && args.length != 4) {
 			System.err.println("Usage: [NODE_ID] [NODE_PORT] [CONFIG.TXT] [POISONED REVERSE FLAG|-p]");
@@ -75,25 +88,48 @@ public class dv_routing_base {
 		//command line input validation finished
 		//now initialising variables
 		try {
-			Graph g = initialise(nodeID, config);
-			g.printDistTable();
+			Map<Character, Integer> nodePorts = new HashMap<Character, Integer>();
+			g = initialise(nodeID, config, nodePorts);
+			g.printDT();
+			g.printDV();
+			udp = new UDP(port, nodePorts);				//open udp connections
 		} catch (DataFormatException e) {
 			System.err.println("Config file has invalid data");
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		try {
-			udp = new UDP(port);				//open udp connections
+			return;
 		} catch (IOException e) {
 			System.err.println("could not create udp object");
 			return;
 		}
+		
+		Listener listener = new Listener(udp, queue);	//starts the listener thread
+		Timer t = new Timer();
+		t.schedule(new Ping(nodeID, udp), 0, pingIntervalMilli);
+		//#####################################################################
+		//Everything has been initialised
+		//Processes all jobs in queue 
+		synchronized (queue) {
+			try {
+				while (true) {
+					if (queue.isEmpty()) {
+						queue.wait();
+					}
+					Object message = queue.pop();
+					if (message instanceof Message) {
+						((Message) message).execute();
+					} else {
+						throw new IllegalArgumentException();
+					}
+				}
+			} catch (InterruptedException e) {
+
+			} catch (IllegalArgumentException e) {
+				System.err.println("Received a message that is not a message");
+			}
+		}
 	}
 
-	private static Graph initialise(char thisNodeID, File config) throws DataFormatException, IOException {
+	private static Graph initialise(char thisNodeID, File config, Map<Character, Integer> nodePorts) throws DataFormatException, IOException {
 		Graph g = new Graph();
-		Map<Character, Integer> adjacentNodes = new HashMap<Character, Integer>();
 		BufferedReader br = null;
 		int num;
 		try {
@@ -104,59 +140,58 @@ public class dv_routing_base {
 				throw new DataFormatException();
 			}
 			num = Integer.parseInt(br.readLine());
-			for (int i = 0; i < num && br.ready(); i++) {
+			for (int i = 0; i < num; i++) {
 				String[] inputSplit = br.readLine().split(" ");
 				if (inputSplit[0].length() != 1 || !inputSplit[0].matches("[A-Z]")) {
+					
 					br.close();
 					throw new IllegalArgumentException();
 				}
 				char nodeID = inputSplit[0].charAt(0);
 				int distance = Integer.parseInt(inputSplit[1]);
 				int port = Integer.parseInt(inputSplit[2]);
-
-				adjacentNodes.put(nodeID, port);	//link node to port
-				g.addNode(nodeID);
+				System.out.println("reading: "+nodeID+" "+num);
+				nodePorts.put(nodeID, port);	//link node to port
+				
+				g.addAdjacentNode(nodeID);
+				g.addKnownNode(nodeID);
 				g.updateDistance(nodeID, nodeID, distance);
 				//since all nodes at this point are adjacent nodes, the via node and to node are the same
 			}
-			//set adj nodes after collect them from file
-			g.setAdjacentNodes(adjacentNodes);
+			//set adjacent nodes after collect them from file
+
 			br.close();
 		} catch (FileNotFoundException e) {
 			//should not reach here, it has already been checked
 		} catch (NumberFormatException e) {
 			throw new DataFormatException();
 		} catch (IndexOutOfBoundsException e) {
-			System.out.println("test");
 			throw new DataFormatException();
 		} catch (Exception e) {
+			e.printStackTrace();
 		}
-
-
 		return g;
 	}
+	
+	private static class Ping extends TimerTask {
 
-	private static class UDP {
+		private final UDP udp;
+		private final char nodeID;
 
-		private DatagramSocket serverSocket;
-		private DatagramSocket clientSocket;
-		private ByteArrayOutputStream baos;
-		private ObjectOutputStream oos;
-
-		private UDP (int port) throws IOException {
-			this.serverSocket = new DatagramSocket(port);
-			this.clientSocket = new DatagramSocket();
-			this.baos = new ByteArrayOutputStream();
-			this.oos = new ObjectOutputStream(baos);
+		private Ping(char nodeID, UDP udp) {
+			this.nodeID = nodeID;
+			this.udp = udp;
 		}
 
-		private void write(Object obj, char nodeID) throws IOException {
-			this.oos.writeObject(obj);
-			this.oos.flush();
-			// change object into byte array
-			byte[] buf= baos.toByteArray();
+		@Override
+		public void run() {
+			HeartBeat hb = new HeartBeat(this.nodeID);
+			try {
+				udp.sendToAll(udp.getPorts(), hb);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
-
 	}
-
 }
