@@ -14,7 +14,6 @@ public class HeartBeat implements Message {
 
 	@Override
 	public void execute() {
-
 	}
 
 }

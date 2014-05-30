@@ -16,50 +16,75 @@ import java.util.Map;
 
 class UDP {
 	private final DatagramSocket serverSocket;
-	private final DatagramSocket clientSocket;
+	private DatagramSocket clientSocket;
 	private final InetAddress IPAddress;
 
-	private final ByteArrayOutputStream baos;
-	private final ObjectOutputStream oos;
+	private ByteArrayOutputStream baos;
+	private ObjectOutputStream oos;
+	private ByteArrayInputStream bais;
+	private ObjectInputStream ois;
 	private final int byteSize = 1024;
 
 	private final Map<Character, Integer> nodePorts;
 
 	UDP (int port, Map<Character, Integer> adjacentNodes) throws IOException {
 		this.serverSocket = new DatagramSocket(port);
-		this.clientSocket = new DatagramSocket();
-		IPAddress = InetAddress.getByName("localhost");
 
-		this.baos = new ByteArrayOutputStream();
-		this.oos = new ObjectOutputStream(baos);
+		IPAddress = InetAddress.getByName("localhost");
+		
 		this.nodePorts = adjacentNodes;
 	}
 
 	void write(Object sendObject, int port) throws IOException {
+		byte[] sendBytes;
 
 		if (sendObject instanceof Message == false) {
-
 			throw new IllegalArgumentException();
 		}
 		System.out.println("sending "+sendObject+" to "+port);
-		this.oos.writeObject(sendObject);
-		this.oos.flush();
-		// change object into byte array
-		byte[] sendBytes= baos.toByteArray();
 
-		if (sendBytes.length > this.byteSize) {
-			throw new IOException();
+		try {
+			this.baos = new ByteArrayOutputStream();
+			this.oos = new ObjectOutputStream(baos);
+
+			this.oos.writeObject(sendObject);
+			this.oos.flush();
+
+			// change object into byte array
+			sendBytes = baos.toByteArray();
+
+			if (sendBytes.length > this.byteSize) {
+				throw new IOException();
+			}
+		} finally {
+			this.oos.close();
+			this.baos.close();
 		}
-		DatagramPacket sendPacket = new DatagramPacket(sendBytes, sendBytes.length, IPAddress, port);
-		clientSocket.send(sendPacket);
+
+		try {
+			DatagramPacket sendPacket = new DatagramPacket(sendBytes, sendBytes.length, IPAddress, port);
+			this.clientSocket = new DatagramSocket();
+			clientSocket.send(sendPacket);
+		} finally {
+			this.clientSocket.close();
+		}
 	}
 
 	Object read() throws IOException, ClassNotFoundException {
 		byte[] receiveBytes = new byte[byteSize];
+		Object readObject;
 		DatagramPacket receivePacket = new DatagramPacket(receiveBytes, receiveBytes.length);
 		this.serverSocket.receive(receivePacket);
-		ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(receivePacket.getData()));
-		return ois.readObject();
+		
+		try {
+			bais = new ByteArrayInputStream(receivePacket.getData()); 
+			ois = new ObjectInputStream(bais);
+			readObject = ois.readObject();
+		} finally {
+			ois.close();
+			bais.close();
+		}
+		return readObject;
 	}
 
 	void sendToAll(List<Integer> ports, Object sendObject) throws IOException {
@@ -68,11 +93,11 @@ class UDP {
 			write(sendObject, portNumber);
 		}
 	}
-	
+
 	Map<Character, Integer> getAdjacentNodes() {
 		return this.nodePorts;
 	}
-	
+
 	List<Integer> getPorts() {
 		List<Integer> ports = new ArrayList<Integer>();
 		for (Character key : this.nodePorts.keySet()) {
@@ -80,7 +105,7 @@ class UDP {
 		}
 		return ports;
 	}
-	
+
 	int getPort(Character nodeID) throws InputMismatchException {
 		if (!this.nodePorts.containsKey(nodeID)) {
 			throw new InputMismatchException();

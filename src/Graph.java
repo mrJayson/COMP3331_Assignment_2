@@ -41,18 +41,6 @@ class Graph implements Serializable{
 	}
 
 	void deleteAdjacentNode(Character nodeID) throws InputMismatchException {
-
-	}
-
-	void addKnownNode(Character nodeID) throws InputMismatchException {
-		if (this.knownNodes.contains(nodeID) || this.distanceVector.containsKey(nodeID)) {
-			throw new InputMismatchException();
-		}
-		this.knownNodes.add(nodeID);
-		this.distanceVector.put(nodeID, null);
-	}
-
-	void deleteKnownNode(Character nodeID) throws InputMismatchException {
 		if (!this.knownNodes.contains(nodeID) || !this.distTable.containsKey(nodeID)) {
 			throw new InputMismatchException();
 		}
@@ -64,6 +52,21 @@ class Graph implements Serializable{
 		}
 	}
 
+	void addKnownNode(Character nodeID) throws InputMismatchException {
+		if (this.knownNodes.contains(nodeID) || this.distanceVector.containsKey(nodeID)) {
+			throw new InputMismatchException();
+		}
+		this.knownNodes.add(nodeID);
+		this.distanceVector.put(nodeID, null);
+	}
+
+	void deleteKnownNode(Character nodeID) throws InputMismatchException {
+		if (!this.knownNodes.contains(nodeID) || !this.distanceVector.containsKey(nodeID)) {
+			throw new InputMismatchException();
+		}
+		
+	}
+
 	void updateDistance(Character viaNode, Character toNode, int distance) throws InputMismatchException {
 		if (!this.adjacentNodes.contains(viaNode) || !this.knownNodes.contains(toNode)) {
 			throw new InputMismatchException();
@@ -72,8 +75,6 @@ class Graph implements Serializable{
 		this.distTable.get(viaNode).put(toNode, distance);
 		int min = Integer.MAX_VALUE;
 		for (char adjacent : this.adjacentNodes) {
-			System.out.println(adjacent);
-			System.out.println(toNode);
 			try {
 				if (min > this.distTable.get(adjacent).get(toNode)) {
 					min = this.distTable.get(adjacent).get(toNode);

@@ -90,6 +90,7 @@ public class dv_routing_base {
 		try {
 			Map<Character, Integer> nodePorts = new HashMap<Character, Integer>();
 			g = initialise(nodeID, config, nodePorts);
+
 			g.printDT();
 			g.printDV();
 			udp = new UDP(port, nodePorts);				//open udp connections
@@ -100,7 +101,7 @@ public class dv_routing_base {
 			System.err.println("could not create udp object");
 			return;
 		}
-		
+
 		Listener listener = new Listener(udp, queue);	//starts the listener thread
 		Timer t = new Timer();
 		t.schedule(new Ping(nodeID, udp), 0, pingIntervalMilli);
@@ -131,28 +132,26 @@ public class dv_routing_base {
 	private static Graph initialise(char thisNodeID, File config, Map<Character, Integer> nodePorts) throws DataFormatException, IOException {
 		Graph g = new Graph();
 		BufferedReader br = null;
+		FileReader fr = null;
 		int num;
 		try {
-			br = new BufferedReader(new FileReader(config));
+			fr = new FileReader(config);
+			br = new BufferedReader(fr);
 
 			if (!br.ready()) {
-				br.close();
 				throw new DataFormatException();
 			}
 			num = Integer.parseInt(br.readLine());
 			for (int i = 0; i < num; i++) {
 				String[] inputSplit = br.readLine().split(" ");
 				if (inputSplit[0].length() != 1 || !inputSplit[0].matches("[A-Z]")) {
-					
-					br.close();
 					throw new IllegalArgumentException();
 				}
 				char nodeID = inputSplit[0].charAt(0);
 				int distance = Integer.parseInt(inputSplit[1]);
 				int port = Integer.parseInt(inputSplit[2]);
-				System.out.println("reading: "+nodeID+" "+num);
 				nodePorts.put(nodeID, port);	//link node to port
-				
+
 				g.addAdjacentNode(nodeID);
 				g.addKnownNode(nodeID);
 				g.updateDistance(nodeID, nodeID, distance);
@@ -160,7 +159,6 @@ public class dv_routing_base {
 			}
 			//set adjacent nodes after collect them from file
 
-			br.close();
 		} catch (FileNotFoundException e) {
 			//should not reach here, it has already been checked
 		} catch (NumberFormatException e) {
@@ -169,10 +167,13 @@ public class dv_routing_base {
 			throw new DataFormatException();
 		} catch (Exception e) {
 			e.printStackTrace();
+		} finally {
+			br.close();
+			fr.close();
 		}
 		return g;
 	}
-	
+
 	private static class Ping extends TimerTask {
 
 		private final UDP udp;
