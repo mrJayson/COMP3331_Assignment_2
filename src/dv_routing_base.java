@@ -31,7 +31,8 @@ public class dv_routing_base {
 		boolean poisonReversed = false;
 		UDP udp;
 		Graph g;
-		JobQueue queue = new JobQueue();
+		Queue jobQueue = new Queue();
+		Queue heartBeatQueue = new Queue();
 		int pingIntervalMilli = 5000;
 
 		if (args.length != 3 && args.length != 4) {
@@ -100,9 +101,10 @@ public class dv_routing_base {
 			return;
 		}
 
+		new HeartBeatProcessor(heartBeatQueue);			//starts the heartBeat processing thread
+		new Timer().schedule(new Ping(nodeID, udp), 0, pingIntervalMilli);	//start heartbeat thread
+		new Listener(udp, jobQueue, heartBeatQueue);	//starts the listener thread
 
-		//new Timer().schedule(new Ping(nodeID, udp), 0, pingIntervalMilli);	//start heartbeat thread
-		new Listener(udp, queue);	//starts the listener thread
 		//#####################################################################
 		//relay this node's initialising distanceVector to adjacent nodes
 		try {
@@ -114,21 +116,25 @@ public class dv_routing_base {
 		//#####################################################################
 		//Everything has been initialised
 		//Processes all jobs in queue 
-		synchronized (queue) {
+		synchronized (jobQueue) {
 			try {
 				while (true) {
-					if (queue.isEmpty()) {
-						g.printDT();
-						g.printDV();
-						queue.wait();
+					if (jobQueue.isEmpty()) {
+
+						Thread.sleep(1000);
+						//wait one second before declaring all jobs are done
+						if (jobQueue.isEmpty()) {
+							g.printDT();
+							g.printDV();
+							jobQueue.wait();
+						}
 					}
-					Object message = queue.pop();
+					Object message = jobQueue.pop();
 					if (message instanceof Message) {
 						((Message) message).execute(g);
 						if (message instanceof DistanceVector) {
 							if (((DistanceVector) message).isUpdated()) {
 								//if distanceTable is updated, send new DV out
-								System.out.println("resending");
 								udp.sendToAll(g.getDV());
 							}
 						}
@@ -169,11 +175,14 @@ public class dv_routing_base {
 				int distance = Integer.parseInt(inputSplit[1]);
 				int port = Integer.parseInt(inputSplit[2]);
 				nodePorts.put(nodeID, port);	//link node to port
-
-				g.addAdjacentNode(nodeID);
-				g.updateDistance(nodeID, nodeID, distance);
-				//since all nodes at this point are adjacent nodes, the via node and to node are the same
+				
+				g.addAdjacentNode(nodeID, distance);
+				g.connectAdjacentNode(nodeID);
 			}
+			
+			
+			
+			
 			//set adjacent nodes after collect them from file
 
 		} catch (FileNotFoundException e) {
@@ -189,6 +198,72 @@ public class dv_routing_base {
 			fr.close();
 		}
 		return g;
+	}
+
+	private static class HeartBeatProcessor implements Runnable {
+
+		private final Queue heartBeatQueue;
+		private final Thread t;
+
+		private HeartBeatProcessor (Queue heartBeatQueue) {
+			this.heartBeatQueue = heartBeatQueue;
+			t = new Thread(this);
+			System.out.println("HeartBeatProcessor running");
+			t.start();
+		}
+
+		@Override
+		public void run() {
+			synchronized (this.heartBeatQueue) {
+				try {
+					while (true) {
+						if (this.heartBeatQueue.isEmpty()) {
+							this.heartBeatQueue.wait();
+						}
+
+					}
+				} catch (InterruptedException e) {
+
+				}
+			}
+		}
+	}
+
+	public static class Listener implements Runnable {
+
+		private final Queue jobQueue;
+		private final Queue heartBeatQueue;
+		private final UDP udp;
+		private final Thread t;
+
+		private Listener (UDP udp, Queue jobQueue, Queue heartBeatQueue) {
+			this.jobQueue = jobQueue;
+			this.heartBeatQueue = heartBeatQueue;
+			this.udp = udp;
+			t = new Thread(this);
+			System.out.println("Listener running");
+			t.start();
+		}
+
+		@Override
+		public void run() {
+			try {
+				while (true) {
+					Object readObject = udp.read();
+					if (readObject instanceof HeartBeat) {
+						//System.out.println("Heartbeat from: "+((HeartBeat) readObject).getNodeID());
+						heartBeatQueue.push(readObject);
+					}
+					else if (readObject instanceof Message) {
+						jobQueue.push(readObject);
+					} else {
+						throw new IOException();
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	private static class Ping extends TimerTask {

@@ -1,8 +1,14 @@
+import java.io.Serializable;
 
 
-public class HeartBeat implements Message {
+
+public class HeartBeat implements Sendable {
 	
-	private char fromNodeID;
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private final char fromNodeID;
 	
 	public HeartBeat(char nodeID) {
 		this.fromNodeID = nodeID;
@@ -10,10 +16,6 @@ public class HeartBeat implements Message {
 	
 	public char getNodeID() {
 		return this.fromNodeID;
-	}
-
-	@Override
-	public void execute(Graph g) {
 	}
 
 }

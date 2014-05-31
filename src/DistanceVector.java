@@ -51,6 +51,7 @@ public class DistanceVector implements Message {
 					cost = Integer.MAX_VALUE;
 				}
 				//new cost = cost to get to [node] from via node, plus cost to get to via node
+				
 				Integer newCost = distanceVector.get(node) + g.getDistance(this.nodeID, this.nodeID);
 				
 				if (cost > newCost) {

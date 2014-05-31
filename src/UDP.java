@@ -38,10 +38,10 @@ class UDP {
 	void write(Object sendObject, int port) throws IOException {
 		byte[] sendBytes;
 
-		if (sendObject instanceof Message == false) {
+		if (sendObject instanceof Sendable == false) {
 			throw new IllegalArgumentException();
 		}
-		//System.out.println("sending "+sendObject+" to "+port);
+		System.out.println("sending "+sendObject+" to "+port);
 
 		try {
 			this.baos = new ByteArrayOutputStream();
