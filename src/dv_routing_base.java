@@ -21,7 +21,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.zip.DataFormatException;
 
-
 public class dv_routing_base {
 
 	public static void main(String[] args) {
@@ -32,7 +31,7 @@ public class dv_routing_base {
 		boolean poisonReversed = false;
 		UDP udp;
 		Graph g;
-		SyncQueue queue = new SyncQueue();
+		JobQueue queue = new JobQueue();
 		int pingIntervalMilli = 5000;
 
 		if (args.length != 3 && args.length != 4) {
@@ -101,9 +100,17 @@ public class dv_routing_base {
 			return;
 		}
 
-		Listener listener = new Listener(udp, queue);	//starts the listener thread
-		Timer t = new Timer();
-		t.schedule(new Ping(nodeID, udp), 0, pingIntervalMilli);
+
+		new Timer().schedule(new Ping(nodeID, udp), 0, pingIntervalMilli);	//start heartbeat thread
+		new Listener(udp, queue);	//starts the listener thread
+		//#####################################################################
+		//relay this node's initialising distanceVector to adjacent nodes
+		try {
+			udp.sendToAll(g.getDV());
+		} catch (IOException e1) {
+			//error sending initialising DV
+			e1.printStackTrace();
+		}
 		//#####################################################################
 		//Everything has been initialised
 		//Processes all jobs in queue 
@@ -111,11 +118,19 @@ public class dv_routing_base {
 			try {
 				while (true) {
 					if (queue.isEmpty()) {
+						g.printDT();
+						g.printDV();
 						queue.wait();
 					}
 					Object message = queue.pop();
 					if (message instanceof Message) {
-						((Message) message).execute();
+						((Message) message).execute(g);
+						if (message instanceof DistanceVector) {
+							if (((DistanceVector) message).isUpdated()) {
+								//if distanceTable is updated, send new DV out
+								udp.sendToAll(g.getDV());
+							}
+						}
 					} else {
 						throw new IllegalArgumentException();
 					}
@@ -124,12 +139,15 @@ public class dv_routing_base {
 
 			} catch (IllegalArgumentException e) {
 				System.err.println("Received a message that is not a message");
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		}
 	}
 
 	private static Graph initialise(char thisNodeID, File config, Map<Character, Integer> nodePorts) throws DataFormatException, IOException {
-		Graph g = new Graph();
+		Graph g = new Graph(thisNodeID);
 		BufferedReader br = null;
 		FileReader fr = null;
 		int num;
@@ -186,7 +204,7 @@ public class dv_routing_base {
 		public void run() {
 			HeartBeat hb = new HeartBeat(this.nodeID);
 			try {
-				udp.sendToAll(udp.getPorts(), hb);
+				udp.sendToAll(hb);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

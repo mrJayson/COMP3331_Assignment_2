@@ -1,11 +1,11 @@
 
 public class Listener implements Runnable{
 
-	private SyncQueue queue;
-	private UDP udp;
-	private Thread t;
+	private final JobQueue queue;
+	private final UDP udp;
+	private final Thread t;
 
-	public Listener (UDP udp, SyncQueue queue) {
+	public Listener (UDP udp, JobQueue queue) {
 		this.queue = queue;
 		this.udp = udp;
 		t = new Thread(this);

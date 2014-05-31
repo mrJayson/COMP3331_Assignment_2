@@ -17,15 +17,17 @@ class Graph implements Serializable{
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	private List<Character> adjacentNodes;
-	private List<Character> knownNodes;
+	private final char thisNodeID;
+	private final List<Character> adjacentNodes;
+	private final List<Character> knownNodes;
 	//List of all the nodes this node is aware of
-	private Map<Character, Map<Character, Integer>> distTable;
+	private final Map<Character, Map<Character, Integer>> distTable;
 	//distTable is a 2d map so can map char,char to a distance
 	//first char is the via node, second char is the to node
-	private Map<Character, Integer> distanceVector;
+	private final Map<Character, Integer> distanceVector;
 
-	Graph() {
+	Graph(char nodeID) {
+		this.thisNodeID = nodeID;
 		this.knownNodes = new ArrayList<Character>();
 		this.adjacentNodes = new ArrayList<Character>();
 		this.distTable = new HashMap<Character, Map<Character, Integer>>();
@@ -33,14 +35,13 @@ class Graph implements Serializable{
 	}
 
 	void addAdjacentNode(Character nodeID) throws InputMismatchException{
-		if (this.knownNodes.contains(nodeID) || this.distTable.containsKey(nodeID)) {
+		if (nodeID.equals(this.thisNodeID) || this.knownNodes.contains(nodeID) || this.distTable.containsKey(nodeID)) {
 			throw new InputMismatchException();
 		}
 		this.adjacentNodes.add(nodeID);
 		this.distTable.put(nodeID, new HashMap<Character, Integer>());
 		//if an adjacent node is known, it is also known in knownNodes
 		addKnownNode(nodeID);
-		
 	}
 
 	void deleteAdjacentNode(Character nodeID) throws InputMismatchException {
@@ -59,7 +60,7 @@ class Graph implements Serializable{
 	}
 
 	void addKnownNode(Character nodeID) throws InputMismatchException {
-		if (this.knownNodes.contains(nodeID) || this.distanceVector.containsKey(nodeID)) {
+		if (nodeID.equals(this.thisNodeID) || this.knownNodes.contains(nodeID) || this.distanceVector.containsKey(nodeID)) {
 			throw new InputMismatchException();
 		}
 		this.knownNodes.add(nodeID);
@@ -85,12 +86,24 @@ class Graph implements Serializable{
 		//deleting from distanceVector means the min entry is deleted without side-effects
 	}
 
+	boolean knowsNode(Character nodeID) {
+		return this.knownNodes.contains(nodeID);
+	}
+
 	void updateDistance(Character viaNode, Character toNode, int distance) throws InputMismatchException {
 		if (!this.adjacentNodes.contains(viaNode) || !this.knownNodes.contains(toNode)) {
 			throw new InputMismatchException();
 		}
 		this.distTable.get(viaNode).put(toNode, distance);
 		updateDV();
+	}
+
+	Integer getDistance(Character viaNode, Character toNode) {
+		if (!this.adjacentNodes.contains(viaNode) || !this.knownNodes.contains(toNode)) {
+			throw new InputMismatchException();
+		}
+		//will return null if there is no cost yet
+		return this.distTable.get(viaNode).get(toNode);
 	}
 
 	void updateDV() {
@@ -113,6 +126,10 @@ class Graph implements Serializable{
 			}
 			this.distanceVector.put(known, min);
 		}
+	}
+
+	DistanceVector getDV() {
+		return new DistanceVector(this.thisNodeID, distanceVector);
 	}
 
 	void printDT() {

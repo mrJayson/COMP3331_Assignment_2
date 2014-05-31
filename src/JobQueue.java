@@ -2,17 +2,18 @@ import java.util.LinkedList;
 import java.util.List;
 
 
-public class SyncQueue {
+public class JobQueue {
 	
-	private List<Object> queue;
+	private final List<Object> queue;
 
-	public SyncQueue() {
+	public JobQueue() {
 		this.queue = new LinkedList<Object>();
 	}
 
 	public boolean isEmpty() {
 		return this.queue.isEmpty();
 	}
+
 
 	public synchronized void push(Object object) {
 		synchronized (this.queue){ 

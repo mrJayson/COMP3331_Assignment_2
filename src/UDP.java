@@ -87,9 +87,8 @@ class UDP {
 		return readObject;
 	}
 
-	void sendToAll(List<Integer> ports, Object sendObject) throws IOException {
-
-		for (int portNumber : ports) {
+	synchronized void sendToAll(Object sendObject) throws IOException {
+		for (int portNumber : getPorts()) {
 			write(sendObject, portNumber);
 		}
 	}
@@ -101,7 +100,7 @@ class UDP {
 	List<Integer> getPorts() {
 		List<Integer> ports = new ArrayList<Integer>();
 		for (Character key : this.nodePorts.keySet()) {
-			ports.add(this.nodePorts.get(key));
+			ports.add(getPort(key));
 		}
 		return ports;
 	}
