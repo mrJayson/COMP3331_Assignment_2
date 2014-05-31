@@ -41,7 +41,7 @@ class UDP {
 		if (sendObject instanceof Message == false) {
 			throw new IllegalArgumentException();
 		}
-		System.out.println("sending "+sendObject+" to "+port);
+		//System.out.println("sending "+sendObject+" to "+port);
 
 		try {
 			this.baos = new ByteArrayOutputStream();

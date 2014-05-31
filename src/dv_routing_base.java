@@ -89,8 +89,8 @@ public class dv_routing_base {
 		try {
 			Map<Character, Integer> nodePorts = new HashMap<Character, Integer>();
 			g = initialise(nodeID, config, nodePorts);
-			g.printDT();
-			g.printDV();
+			//g.printDT();
+			//g.printDV();
 			udp = new UDP(port, nodePorts);				//open udp connection
 		} catch (DataFormatException e) {
 			System.err.println("Config file has invalid data");
@@ -101,7 +101,7 @@ public class dv_routing_base {
 		}
 
 
-		new Timer().schedule(new Ping(nodeID, udp), 0, pingIntervalMilli);	//start heartbeat thread
+		//new Timer().schedule(new Ping(nodeID, udp), 0, pingIntervalMilli);	//start heartbeat thread
 		new Listener(udp, queue);	//starts the listener thread
 		//#####################################################################
 		//relay this node's initialising distanceVector to adjacent nodes
@@ -128,6 +128,7 @@ public class dv_routing_base {
 						if (message instanceof DistanceVector) {
 							if (((DistanceVector) message).isUpdated()) {
 								//if distanceTable is updated, send new DV out
+								System.out.println("resending");
 								udp.sendToAll(g.getDV());
 							}
 						}

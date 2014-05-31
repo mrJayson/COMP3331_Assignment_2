@@ -44,20 +44,26 @@ public class DistanceVector implements Message {
 		try {
 			//the DV is from the perspective of nodeID
 			//and updates will affect that viaNode column only
-			
 			for (Character node : distanceVector.keySet()) {
+				try {
 				Integer cost = g.getDistance(nodeID, node);
 				if (cost == null) {
 					cost = Integer.MAX_VALUE;
 				}
-				if (cost > distanceVector.get(node)) {
-					g.updateDistance(nodeID, node, distanceVector.get(node));
+				//new cost = cost to get to [node] from via node, plus cost to get to via node
+				Integer newCost = distanceVector.get(node) + g.getDistance(this.nodeID, this.nodeID);
+				
+				if (cost > newCost) {
+					g.updateDistance(nodeID, node, newCost);
 					this.updated = true;
+				}
+				} catch (InputMismatchException e) {
+					//it will fail for getting its nodeID from knownNodes
 				}
 			}
 			
 		} catch (Exception e) {
-
+			e.printStackTrace();
 		}
 
 	}

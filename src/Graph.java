@@ -100,6 +100,7 @@ class Graph implements Serializable{
 
 	Integer getDistance(Character viaNode, Character toNode) {
 		if (!this.adjacentNodes.contains(viaNode) || !this.knownNodes.contains(toNode)) {
+			System.out.println(toNode);
 			throw new InputMismatchException();
 		}
 		//will return null if there is no cost yet

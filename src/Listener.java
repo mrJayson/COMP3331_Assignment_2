@@ -19,7 +19,7 @@ public class Listener implements Runnable{
 			while (true) {
 				Object readObject = udp.read();
 				if (readObject instanceof HeartBeat) {
-					System.out.println("Heartbeat from: "+((HeartBeat) readObject).getNodeID());
+					//System.out.println("Heartbeat from: "+((HeartBeat) readObject).getNodeID());
 				}
 				queue.push(readObject);
 			}
