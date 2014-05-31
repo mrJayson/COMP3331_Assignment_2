@@ -101,36 +101,37 @@ public class dv_routing_base {
 			return;
 		}
 
-		new HeartBeatProcessor(heartBeatQueue);			//starts the heartBeat processing thread
+		new HeartBeatProcessor(heartBeatQueue, jobQueue, g);	//starts the heartBeat processing thread
 		new Timer().schedule(new Ping(nodeID, udp), 0, pingIntervalMilli);	//start heartbeat thread
 		new Listener(udp, jobQueue, heartBeatQueue);	//starts the listener thread
 
 		//#####################################################################
 		//relay this node's initialising distanceVector to adjacent nodes
-		try {
+		/*try {
 			udp.sendToAll(g.getDV());
 		} catch (IOException e1) {
 			//error sending initialising DV
 			e1.printStackTrace();
-		}
+		}*/
 		//#####################################################################
 		//Everything has been initialised
-		//Processes all jobs in queue 
+		//Processes all jobs in queue
 		synchronized (jobQueue) {
 			try {
 				while (true) {
 					if (jobQueue.isEmpty()) {
-
 						Thread.sleep(1000);
 						//wait one second before declaring all jobs are done
 						if (jobQueue.isEmpty()) {
 							g.printDT();
 							g.printDV();
+							//System.out.println(g.getDV().distanceVector);
 							jobQueue.wait();
 						}
 					}
 					Object message = jobQueue.pop();
 					if (message instanceof Message) {
+
 						((Message) message).execute(g);
 						if (message instanceof DistanceVector) {
 							if (((DistanceVector) message).isUpdated()) {
@@ -138,6 +139,12 @@ public class dv_routing_base {
 								udp.sendToAll(g.getDV());
 							}
 						}
+						else if (message instanceof ConnectionSignal) {
+							//ensure the node that caused this signal will have connected
+							//by the time the DV gets there
+							udp.sendToAll(new HeartBeat(nodeID));
+							udp.sendToAll(g.getDV());
+						} 
 					} else {
 						throw new IllegalArgumentException();
 					}
@@ -175,15 +182,10 @@ public class dv_routing_base {
 				int distance = Integer.parseInt(inputSplit[1]);
 				int port = Integer.parseInt(inputSplit[2]);
 				nodePorts.put(nodeID, port);	//link node to port
-				
+
 				g.addAdjacentNode(nodeID, distance);
-				g.connectAdjacentNode(nodeID);
+				//g.connectAdjacentNode(nodeID);
 			}
-			
-			
-			
-			
-			//set adjacent nodes after collect them from file
 
 		} catch (FileNotFoundException e) {
 			//should not reach here, it has already been checked
@@ -203,10 +205,14 @@ public class dv_routing_base {
 	private static class HeartBeatProcessor implements Runnable {
 
 		private final Queue heartBeatQueue;
+		private final Queue jobQueue;
+		private final Graph g;
 		private final Thread t;
 
-		private HeartBeatProcessor (Queue heartBeatQueue) {
+		private HeartBeatProcessor (Queue heartBeatQueue, Queue jobQueue, Graph g) {
 			this.heartBeatQueue = heartBeatQueue;
+			this.jobQueue = jobQueue;
+			this.g = g;
 			t = new Thread(this);
 			System.out.println("HeartBeatProcessor running");
 			t.start();
@@ -220,7 +226,16 @@ public class dv_routing_base {
 						if (this.heartBeatQueue.isEmpty()) {
 							this.heartBeatQueue.wait();
 						}
-
+						Object heartBeat = this.heartBeatQueue.pop();
+						if (heartBeat instanceof HeartBeat) {
+							Boolean action = ((HeartBeat) heartBeat).checkConnection(g);
+							if (action != null && action == true) {
+								//means currently disconnected, connect
+								this.jobQueue.push(new ConnectionSignal(true, ((HeartBeat) heartBeat).getNodeID()));
+							} else if (action != null && action == false) {
+								//action = false, means currently connected, disconnect
+							}
+						}
 					}
 				} catch (InterruptedException e) {
 

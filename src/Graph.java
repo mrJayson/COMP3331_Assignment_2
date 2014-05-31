@@ -39,6 +39,13 @@ class Graph implements Serializable{
 		this.distanceVector = new HashMap<Character, Integer>();
 	}
 	
+	boolean connected(Character nodeID) throws InputMismatchException {
+		if (!this.allAdjacentNodes.keySet().contains(nodeID)) {
+			throw new InputMismatchException();
+		}
+		return this.connectedAdjacentNodes.contains(nodeID);
+	}
+	
 	void addAdjacentNode(Character nodeID, Integer directCost) throws InputMismatchException {
 		if (this.allAdjacentNodes.containsKey(nodeID) 
 				|| this.disconnectedAdjacentNodes.contains(nodeID) 
@@ -56,12 +63,17 @@ class Graph implements Serializable{
 				|| this.connectedAdjacentNodes.contains(nodeID)) {//safety check
 			throw new InputMismatchException();
 		}
+		System.out.println("connecting: "+nodeID);
 
 		this.connectedAdjacentNodes.add(nodeID);		//add to one
 		this.disconnectedAdjacentNodes.remove(nodeID);	//remove from the other
 		this.distTable.put(nodeID, new HashMap<Character, Integer>());
 		//once the adjacent node is connected, it becomes known in the network
+		try {
 		addKnownNode(nodeID);
+		} catch (InputMismatchException e) {
+			//Catch adding in an already known node
+		}
 		//add direct cost to distTable
 		//since all nodes at this point are adjacent nodes, the via node and to node are the same
 		updateDistance(nodeID, nodeID, this.allAdjacentNodes.get(nodeID));
@@ -151,7 +163,7 @@ class Graph implements Serializable{
 	}
 
 	DistanceVector getDV() {
-		return new DistanceVector(this.thisNodeID, distanceVector);
+		return new DistanceVector(this.thisNodeID, this.distanceVector);
 	}
 
 	void printDT() {
