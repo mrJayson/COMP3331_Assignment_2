@@ -25,6 +25,7 @@ public class HeartBeat implements Sendable {
 			//received heartBeat from a disconnected node
 			action = true;
 		}
+
 		
 		return action;
 	}

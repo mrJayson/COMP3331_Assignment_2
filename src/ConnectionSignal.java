@@ -7,8 +7,8 @@ public class ConnectionSignal implements Message {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	private boolean connection;
-	private char nodeID;
+	private final boolean connection;
+	private final char nodeID;
 	
 	public ConnectionSignal (boolean connection, char nodeID) {
 		this.connection = connection;

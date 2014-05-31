@@ -31,8 +31,8 @@ public class dv_routing_base {
 		boolean poisonReversed = false;
 		UDP udp;
 		Graph g;
-		Queue jobQueue = new Queue();
-		Queue heartBeatQueue = new Queue();
+		Queue jobQueue = new Queue(Thread.currentThread());
+		Queue heartBeatQueue = new Queue(Thread.currentThread());
 		int pingIntervalMilli = 5000;
 
 		if (args.length != 3 && args.length != 4) {
@@ -106,26 +106,18 @@ public class dv_routing_base {
 		new Listener(udp, jobQueue, heartBeatQueue);	//starts the listener thread
 
 		//#####################################################################
-		//relay this node's initialising distanceVector to adjacent nodes
-		/*try {
-			udp.sendToAll(g.getDV());
-		} catch (IOException e1) {
-			//error sending initialising DV
-			e1.printStackTrace();
-		}*/
-		//#####################################################################
 		//Everything has been initialised
 		//Processes all jobs in queue
 		synchronized (jobQueue) {
-			try {
-				while (true) {
+
+			while (true) {
+				try {
 					if (jobQueue.isEmpty()) {
-						Thread.sleep(1000);
-						//wait one second before declaring all jobs are done
+							Thread.sleep(100);
+							//wait one second before declaring all jobs are done
 						if (jobQueue.isEmpty()) {
 							g.printDT();
 							g.printDV();
-							//System.out.println(g.getDV().distanceVector);
 							jobQueue.wait();
 						}
 					}
@@ -148,14 +140,14 @@ public class dv_routing_base {
 					} else {
 						throw new IllegalArgumentException();
 					}
-				}
-			} catch (InterruptedException e) {
+				} catch (InterruptedException e) {
 
-			} catch (IllegalArgumentException e) {
-				System.err.println("Received a message that is not a message");
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				} catch (IllegalArgumentException e) {
+					System.err.println("Received a message that is not a message");
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 		}
 	}
@@ -234,6 +226,7 @@ public class dv_routing_base {
 								this.jobQueue.push(new ConnectionSignal(true, ((HeartBeat) heartBeat).getNodeID()));
 							} else if (action != null && action == false) {
 								//action = false, means currently connected, disconnect
+								this.jobQueue.push(new ConnectionSignal(false, ((HeartBeat) heartBeat).getNodeID()));
 							}
 						}
 					}

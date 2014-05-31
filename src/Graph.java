@@ -63,7 +63,6 @@ class Graph implements Serializable{
 				|| this.connectedAdjacentNodes.contains(nodeID)) {//safety check
 			throw new InputMismatchException();
 		}
-		System.out.println("connecting: "+nodeID);
 
 		this.connectedAdjacentNodes.add(nodeID);		//add to one
 		this.disconnectedAdjacentNodes.remove(nodeID);	//remove from the other

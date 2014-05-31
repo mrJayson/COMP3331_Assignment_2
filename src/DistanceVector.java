@@ -11,7 +11,7 @@ public class DistanceVector implements Message {
 	 */
 	private static final long serialVersionUID = 1L;
 	private final char nodeID;
-	 final Map<Character, Integer> distanceVector;
+	private final Map<Character, Integer> distanceVector;
 	private boolean updated;
 
 	public DistanceVector(char nodeID, Map<Character, Integer> distanceVector) {
