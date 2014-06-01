@@ -29,6 +29,7 @@ public class dv_routing_base {
 		int port;
 		File config;
 		boolean poisonReversed = false;
+		boolean debug = false;
 		UDP udp;
 		Graph g;
 		Queue jobQueue = new Queue();
@@ -36,8 +37,8 @@ public class dv_routing_base {
 		int pingInterval = 2500;	//in milliseconds
 		int convergenceWait = 2500;	//in milliseconds
 
-		if (args.length != 3 && args.length != 4) {
-			System.err.println("Usage: [NODE_ID] [NODE_PORT] [CONFIG.TXT] [POISONED REVERSE FLAG|-p]");
+		if (args.length != 3 && args.length != 4 && args.length != 5) {
+			System.err.println("Usage: [NODE_ID] [NODE_PORT] [CONFIG.TXT] [POISONED REVERSE FLAG|-p] [DEBUG|-d]");
 			return;
 		}
 
@@ -59,9 +60,20 @@ public class dv_routing_base {
 			if (!config.isFile() || !config.exists()) {
 				throw new FileNotFoundException();			//if not found, do not proceed
 			}
-			if (args.length == 4) {
+			if (args.length >= 4) {
 				if (args[3].toLowerCase().equals("-p")) {	//if flag is entered in wrong, treat as not entered
 					poisonReversed = true;
+				}
+				if (args[3].toLowerCase().equals("-d")) {	//if flag is entered in wrong, treat as not entered
+					debug = true;
+				}
+			}
+			if (args.length >= 5) {
+				if (args[4].toLowerCase().equals("-p")) {	//if flag is entered in wrong, treat as not entered
+					poisonReversed = true;
+				}
+				if (args[4].toLowerCase().equals("-d")) {	//if flag is entered in wrong, treat as not entered
+					debug = true;
 				}
 			}
 
@@ -78,12 +90,13 @@ public class dv_routing_base {
 			System.err.println("file must be in ~/[CONFIG.TXT] OR ~/../[CONFIG.TXT] OR ~/../config/[CONFIG.TXT]");
 			return;
 		}
-
+		System.out.print("\033[H\033[2J");
 		System.out.println("\nRunning node with these settings:\n");
-		System.out.println("NODE_ID: "+nodeID);
-		System.out.println("Port Number: "+port);
-		System.out.println("Config File Path: "+config.getAbsolutePath());
-		System.out.println("Poison Reverse flag: "+(poisonReversed?"on":"off")+"\n");
+		System.out.println("NODE_ID:\t\t"+nodeID);
+		System.out.println("Port Number:\t\t"+port);
+		System.out.println("Config File Path:\t"+config.getAbsolutePath());
+		System.out.println("Poison Reverse flag:\t"+(poisonReversed?"on":"off"));
+		System.out.println("debug flag:\t\t"+(debug?"on":"off")+"\n");
 
 		//#####################################################################
 		//command line input validation finished
@@ -125,30 +138,33 @@ public class dv_routing_base {
 					//wait a period of time before declaring converged 
 					//to see if there are any other DVs incoming
 					Thread.sleep(convergenceWait/waitLimit);
-					System.out.println(waited);
+					//System.out.println(waited);
 					waited++;
 				}
 				else if (jobQueue.isEmpty() && waited >= waitLimit) {
 					System.out.print("\033[H\033[2J");
 					System.out.println("\nRunning node with these settings:\n");
-					System.out.println("NODE_ID: "+nodeID);
-					System.out.println("Port Number: "+port);
-					System.out.println("Config File Path: "+config.getAbsolutePath());
-					System.out.println("Poison Reverse flag: "+(poisonReversed?"on":"off")+"\n");
-					g.printDebug();
-					g.printDT();
-					g.printDV();
+					System.out.println("NODE_ID:\t\t"+nodeID);
+					System.out.println("Port Number:\t\t"+port);
+					System.out.println("Config File Path:\t"+config.getAbsolutePath());
+					System.out.println("Poison Reverse flag:\t"+(poisonReversed?"on":"off"));
+					System.out.println("debug flag:\t\t"+(debug?"on":"off")+"\n");
+					if (debug) {
+						g.printDebug();
+						g.printDT();
+						g.printDV();
+					}
 					g.printDVWords();
-					
+
 					if (!g.updated() && poisonReversed) {
+						System.out.println("Applying new costs");
 						g.update();
-						System.out.println("OUT");
 						udp.sendToAll(g.getDV());
 					}
 					synchronized(jobQueue) {
 						jobQueue.wait();
 					}
-					
+
 				}
 				else if (!jobQueue.isEmpty()) {
 					waited = 0;
