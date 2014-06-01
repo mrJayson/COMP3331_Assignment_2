@@ -12,7 +12,7 @@ import java.util.Set;
 
 
 
-class Graph implements Serializable{
+public class Graph implements Serializable{
 	/**
 	 * 
 	 */
@@ -28,7 +28,7 @@ class Graph implements Serializable{
 	//first char is the via node, second char is the to node
 	private final Map<Character, Integer> distanceVector;
 
-	Graph(char nodeID) {
+	public Graph(char nodeID) {
 		this.thisNodeID = nodeID;
 
 		this.allAdjacentNodes = new HashMap<Character, Integer>();
@@ -39,14 +39,14 @@ class Graph implements Serializable{
 		this.distanceVector = new HashMap<Character, Integer>();
 	}
 
-	boolean connected(Character nodeID) throws InputMismatchException {
+	public boolean connected(Character nodeID) throws InputMismatchException {
 		if (!this.allAdjacentNodes.keySet().contains(nodeID)) {
 			throw new InputMismatchException();
 		}
 		return this.connectedAdjacentNodes.contains(nodeID);
 	}
 
-	void addAdjacentNode(Character nodeID, Integer directCost) throws InputMismatchException {
+	public void addAdjacentNode(Character nodeID, Integer directCost) throws InputMismatchException {
 		if (this.allAdjacentNodes.containsKey(nodeID) 
 				|| this.disconnectedAdjacentNodes.contains(nodeID) 
 				|| this.connectedAdjacentNodes.contains(nodeID)) {
@@ -58,7 +58,7 @@ class Graph implements Serializable{
 		this.disconnectedAdjacentNodes.add(nodeID);
 	}
 
-	void connectAdjacentNode(Character nodeID) throws InputMismatchException {
+	public void connectAdjacentNode(Character nodeID) throws InputMismatchException {
 		if (!this.disconnectedAdjacentNodes.contains(nodeID) 	//must be a disconnected node to connect
 				|| this.connectedAdjacentNodes.contains(nodeID)) {//safety check
 			throw new InputMismatchException();
@@ -79,7 +79,7 @@ class Graph implements Serializable{
 		updateDistance(nodeID, nodeID, this.allAdjacentNodes.get(nodeID));
 	}
 
-	void disconnectAdjacentNode(Character nodeID) throws InputMismatchException {
+	public void disconnectAdjacentNode(Character nodeID) throws InputMismatchException {
 		if (!this.connectedAdjacentNodes.contains(nodeID) || !this.distTable.containsKey(nodeID)) {
 			throw new InputMismatchException();
 		}
@@ -94,7 +94,7 @@ class Graph implements Serializable{
 		updateDV();
 	}
 
-	void addKnownNode(Character nodeID) throws InputMismatchException {
+	public void addKnownNode(Character nodeID) throws InputMismatchException {
 		if (nodeID.equals(this.thisNodeID) || this.knownNodes.contains(nodeID) || this.distanceVector.containsKey(nodeID)) {
 			throw new InputMismatchException();
 		}
@@ -104,7 +104,7 @@ class Graph implements Serializable{
 		//adding a new entry to distanceVector means there is no min yet
 	}
 
-	void deleteKnownNode(Character nodeID) throws InputMismatchException {
+	public void deleteKnownNode(Character nodeID) throws InputMismatchException {
 		if (!this.knownNodes.contains(nodeID) || !this.distanceVector.containsKey(nodeID)) {
 			throw new InputMismatchException();
 		}
@@ -121,11 +121,11 @@ class Graph implements Serializable{
 		//deleting from distanceVector means the min entry is deleted without side-effects
 	}
 
-	boolean knowsNode(Character nodeID) {
+	public boolean knowsNode(Character nodeID) {
 		return this.knownNodes.contains(nodeID);
 	}
 
-	void updateDistance(Character viaNode, Character toNode, int distance) throws InputMismatchException {
+	public void updateDistance(Character viaNode, Character toNode, int distance) throws InputMismatchException {
 		if (!this.connectedAdjacentNodes.contains(viaNode) || !this.knownNodes.contains(toNode)) {
 			throw new InputMismatchException();
 		}
@@ -133,7 +133,7 @@ class Graph implements Serializable{
 		updateDV();
 	}
 
-	Integer getDistance(Character viaNode, Character toNode) {
+	public Integer getDistance(Character viaNode, Character toNode) {
 		if (!this.connectedAdjacentNodes.contains(viaNode) || !this.knownNodes.contains(toNode)) {
 			throw new InputMismatchException();
 		}
@@ -141,7 +141,7 @@ class Graph implements Serializable{
 		return this.distTable.get(viaNode).get(toNode);
 	}
 
-	void updateDV() {
+	public void updateDV() {
 		Integer min;
 		for (char known : this.knownNodes) {
 			min = Integer.MAX_VALUE;
@@ -163,11 +163,11 @@ class Graph implements Serializable{
 		}
 	}
 
-	DistanceVector getDV() {
+	public DistanceVector getDV() {
 		return new DistanceVector(this.thisNodeID, this.distanceVector);
 	}
 
-	void printDVWords() {
+	public void printDVWords() {
 		Integer min;
 		Character nextHop;
 		for (Character known : this.knownNodes) {
@@ -194,7 +194,7 @@ class Graph implements Serializable{
 		}
 	}
 
-	void printDT() {
+	public void printDT() {
 		System.out.println("----------------------------------");
 		System.out.println("Distance Table");
 		System.out.println("----------------------------------");
@@ -214,7 +214,7 @@ class Graph implements Serializable{
 		System.out.println("----------------------------------");
 	}
 
-	void printDV() {
+	public void printDV() {
 		System.out.println("----------------------------------");
 		System.out.println("Distance Vectors");
 		System.out.println("----------------------------------");

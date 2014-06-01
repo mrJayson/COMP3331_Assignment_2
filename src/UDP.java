@@ -14,7 +14,7 @@ import java.util.InputMismatchException;
 import java.util.List;
 import java.util.Map;
 
-class UDP {
+public class UDP {
 	private final DatagramSocket serverSocket;
 	private DatagramSocket clientSocket;
 	private final InetAddress IPAddress;
@@ -27,7 +27,7 @@ class UDP {
 
 	private final Map<Character, Integer> nodePorts;
 
-	UDP (int port, Map<Character, Integer> adjacentNodes) throws IOException {
+	public UDP (int port, Map<Character, Integer> adjacentNodes) throws IOException {
 		this.serverSocket = new DatagramSocket(port);
 
 		IPAddress = InetAddress.getByName("localhost");
@@ -35,7 +35,7 @@ class UDP {
 		this.nodePorts = adjacentNodes;
 	}
 
-	void write(Object sendObject, int port) throws IOException {
+	public void write(Object sendObject, int port) throws IOException {
 		byte[] sendBytes;
 
 		if (sendObject instanceof Sendable == false) {
@@ -70,7 +70,7 @@ class UDP {
 		}
 	}
 
-	Object read() throws IOException, ClassNotFoundException {
+	public Object read() throws IOException, ClassNotFoundException {
 		byte[] receiveBytes = new byte[byteSize];
 		Object readObject;
 		DatagramPacket receivePacket = new DatagramPacket(receiveBytes, receiveBytes.length);
@@ -87,17 +87,17 @@ class UDP {
 		return readObject;
 	}
 
-	synchronized void sendToAll(Object sendObject) throws IOException {
+	public synchronized void sendToAll(Object sendObject) throws IOException {
 		for (int portNumber : getPorts()) {
 			write(sendObject, portNumber);
 		}
 	}
 
-	Map<Character, Integer> getAdjacentNodes() {
+	public Map<Character, Integer> getAdjacentNodes() {
 		return this.nodePorts;
 	}
 
-	List<Integer> getPorts() {
+	public List<Integer> getPorts() {
 		List<Integer> ports = new ArrayList<Integer>();
 		for (Character key : this.nodePorts.keySet()) {
 			ports.add(getPort(key));
@@ -105,7 +105,7 @@ class UDP {
 		return ports;
 	}
 
-	int getPort(Character nodeID) throws InputMismatchException {
+	public int getPort(Character nodeID) throws InputMismatchException {
 		if (!this.nodePorts.containsKey(nodeID)) {
 			throw new InputMismatchException();
 		}
