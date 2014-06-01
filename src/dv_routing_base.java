@@ -125,6 +125,7 @@ public class dv_routing_base {
 					//wait a period of time before declaring converged 
 					//to see if there are any other DVs incoming
 					Thread.sleep(convergenceWait/waitLimit);
+					System.out.println(waited);
 					waited++;
 				}
 				else if (jobQueue.isEmpty() && waited >= waitLimit) {
@@ -134,13 +135,20 @@ public class dv_routing_base {
 					System.out.println("Port Number: "+port);
 					System.out.println("Config File Path: "+config.getAbsolutePath());
 					System.out.println("Poison Reverse flag: "+(poisonReversed?"on":"off")+"\n");
+					g.printDebug();
 					g.printDT();
 					g.printDV();
 					g.printDVWords();
-					g.printDebug();
+					
+					if (!g.updated() && poisonReversed) {
+						g.update();
+						System.out.println("OUT");
+						udp.sendToAll(g.getDV());
+					}
 					synchronized(jobQueue) {
 						jobQueue.wait();
 					}
+					
 				}
 				else if (!jobQueue.isEmpty()) {
 					waited = 0;
@@ -183,7 +191,7 @@ public class dv_routing_base {
 	}
 
 	private static Graph initialise(char thisNodeID, boolean poisonReversed, File config, Map<Character, Integer> nodePorts) throws InputMismatchException, DataFormatException, IOException {
-		Graph g = new Graph(thisNodeID);
+		Graph g = new Graph(thisNodeID, poisonReversed);
 		BufferedReader br = null;
 		FileReader fr = null;
 		int num;

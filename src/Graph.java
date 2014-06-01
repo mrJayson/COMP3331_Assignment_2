@@ -28,14 +28,13 @@ public class Graph implements Serializable{
 	//distTable is a 2d map so can map char,char to a distance
 	//first char is the via node, second char is the to node
 	private final Map<Character, Integer> distanceVector;
-
 	private final Map<Character, Integer> connectionStatus;
-
 	private final int missedBeatsLimit = 3;
+	private final boolean poisonReversed;
+	private boolean updated;
 
-	public Graph(char nodeID) {
+	public Graph(char nodeID, boolean poisonReversed) {
 		this.thisNodeID = nodeID;
-
 		this.allAdjacentNodes = new HashMap<Character, Integer>();
 		this.nodeUpdateCost = new HashMap<Character, Integer>();
 		this.disconnectedAdjacentNodes = new ArrayList<Character>();
@@ -44,6 +43,8 @@ public class Graph implements Serializable{
 		this.distTable = new HashMap<Character, Map<Character, Integer>>();
 		this.distanceVector = new HashMap<Character, Integer>();
 		this.connectionStatus = new HashMap<Character, Integer>();
+		this.poisonReversed = poisonReversed;
+		this.updated = false;
 	}
 
 	public boolean connected(Character nodeID) throws InputMismatchException {
@@ -51,6 +52,19 @@ public class Graph implements Serializable{
 			throw new InputMismatchException();
 		}
 		return this.connectedAdjacentNodes.contains(nodeID);
+	}
+
+	public boolean updated() {
+		return this.updated;
+	}
+
+	public void update() {
+		if (poisonReversed) {
+			this.updated = true;
+			for (Character c : this.connectedAdjacentNodes) {
+				updateDistance(c,c,this.nodeUpdateCost.get(c));
+			}
+		}
 	}
 
 	public void addAdjacentNode(Character nodeID, Integer directCost, Integer updateCost) throws InputMismatchException {
@@ -142,7 +156,7 @@ public class Graph implements Serializable{
 		//since all nodes at this point are adjacent nodes, the via node and to node are the same
 		updateDistance(nodeID, nodeID, this.allAdjacentNodes.get(nodeID));
 	}
-	
+
 	public boolean isAdjacent(Character nodeID) {
 		return this.allAdjacentNodes.containsKey(nodeID);
 	}
@@ -251,7 +265,8 @@ public class Graph implements Serializable{
 		}
 		System.out.println();
 		System.out.println("distanceVector: "+this.distanceVector);
-		
+		System.out.println("distTable: "+this.distTable);
+
 
 	}
 

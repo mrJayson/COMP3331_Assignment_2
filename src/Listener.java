@@ -27,7 +27,7 @@ public class Listener implements Runnable {
 					heartBeatQueue.push(readObject);
 				}
 				else if (readObject instanceof Message) {
-					//System.out.println("Message: "+readObject);
+					System.out.println("Message: "+readObject);
 					jobQueue.push(readObject);
 				} else {
 					throw new IOException();
