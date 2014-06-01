@@ -31,9 +31,10 @@ public class dv_routing_base {
 		boolean poisonReversed = false;
 		UDP udp;
 		Graph g;
-		Queue jobQueue = new Queue(Thread.currentThread());
-		Queue heartBeatQueue = new Queue(Thread.currentThread());
-		int pingIntervalMilli = 5000;
+		Queue jobQueue = new Queue();
+		Queue heartBeatQueue = new Queue();
+		int pingInterval = 5000;	//in milliseconds
+		int convergenceWait = 2500;	//in milliseconds
 
 		if (args.length != 3 && args.length != 4) {
 			System.err.println("Usage: [NODE_ID] [NODE_PORT] [CONFIG.TXT] [POISONED REVERSE FLAG|-p]");
@@ -78,7 +79,7 @@ public class dv_routing_base {
 			return;
 		}
 
-		System.out.println("\nstarting up node with these settings:\n");
+		System.out.println("\nRunning node with these settings:\n");
 		System.out.println("NODE_ID: "+nodeID);
 		System.out.println("Port Number: "+port);
 		System.out.println("Config File Path: "+config.getAbsolutePath());
@@ -102,28 +103,36 @@ public class dv_routing_base {
 		}
 
 		new HeartBeatProcessor(heartBeatQueue, jobQueue, g);	//starts the heartBeat processing thread
-		new Timer().schedule(new Ping(nodeID, udp), 0, pingIntervalMilli);	//start heartbeat thread
+		new Timer().schedule(new Ping(nodeID, udp), 0, pingInterval);	//start heartbeat thread
 		new Listener(udp, jobQueue, heartBeatQueue);	//starts the listener thread
 
 		//#####################################################################
 		//Everything has been initialised
 		//Processes all jobs in queue
-		synchronized (jobQueue) {
 
-			while (true) {
-				try {
-					if (jobQueue.isEmpty()) {
-							Thread.sleep(100);
-							//wait one second before declaring all jobs are done
-						if (jobQueue.isEmpty()) {
-							g.printDT();
-							g.printDV();
-							jobQueue.wait();
-						}
+		int waitLimit = 5;
+		int waited = 0;
+		while (true) {
+
+			try {
+				if (jobQueue.isEmpty() && waited < waitLimit) {
+					//wait a period of time before declaring converged 
+					//to see if there are any other DVs incoming
+					Thread.sleep(convergenceWait/waitLimit);
+					waited++;
+				}
+				else if (jobQueue.isEmpty() && waited >= waitLimit) {
+					g.printDT();
+					g.printDV();
+					g.printDVWords();
+					synchronized(jobQueue) {
+						jobQueue.wait();
 					}
+				}
+				else if (!jobQueue.isEmpty()) {
+					waited = 0;
 					Object message = jobQueue.pop();
 					if (message instanceof Message) {
-
 						((Message) message).execute(g);
 						if (message instanceof DistanceVector) {
 							if (((DistanceVector) message).isUpdated()) {
@@ -140,16 +149,18 @@ public class dv_routing_base {
 					} else {
 						throw new IllegalArgumentException();
 					}
-				} catch (InterruptedException e) {
-
-				} catch (IllegalArgumentException e) {
-					System.err.println("Received a message that is not a message");
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
 				}
+			} catch (IllegalArgumentException e) {
+				System.err.println("Received a message that is not a message");
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		}
+
 	}
 
 	private static Graph initialise(char thisNodeID, File config, Map<Character, Integer> nodePorts) throws DataFormatException, IOException {
@@ -176,7 +187,6 @@ public class dv_routing_base {
 				nodePorts.put(nodeID, port);	//link node to port
 
 				g.addAdjacentNode(nodeID, distance);
-				//g.connectAdjacentNode(nodeID);
 			}
 
 		} catch (FileNotFoundException e) {
@@ -221,6 +231,8 @@ public class dv_routing_base {
 						Object heartBeat = this.heartBeatQueue.pop();
 						if (heartBeat instanceof HeartBeat) {
 							Boolean action = ((HeartBeat) heartBeat).checkConnection(g);
+							if (action == null) {
+							}
 							if (action != null && action == true) {
 								//means currently disconnected, connect
 								this.jobQueue.push(new ConnectionSignal(true, ((HeartBeat) heartBeat).getNodeID()));
@@ -263,6 +275,7 @@ public class dv_routing_base {
 						heartBeatQueue.push(readObject);
 					}
 					else if (readObject instanceof Message) {
+						//System.out.println("Message: "+readObject);
 						jobQueue.push(readObject);
 					} else {
 						throw new IOException();

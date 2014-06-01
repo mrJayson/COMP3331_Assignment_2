@@ -30,7 +30,7 @@ class Graph implements Serializable{
 
 	Graph(char nodeID) {
 		this.thisNodeID = nodeID;
-		
+
 		this.allAdjacentNodes = new HashMap<Character, Integer>();
 		this.disconnectedAdjacentNodes = new ArrayList<Character>();
 		this.connectedAdjacentNodes = new ArrayList<Character>();
@@ -38,14 +38,14 @@ class Graph implements Serializable{
 		this.distTable = new HashMap<Character, Map<Character, Integer>>();
 		this.distanceVector = new HashMap<Character, Integer>();
 	}
-	
+
 	boolean connected(Character nodeID) throws InputMismatchException {
 		if (!this.allAdjacentNodes.keySet().contains(nodeID)) {
 			throw new InputMismatchException();
 		}
 		return this.connectedAdjacentNodes.contains(nodeID);
 	}
-	
+
 	void addAdjacentNode(Character nodeID, Integer directCost) throws InputMismatchException {
 		if (this.allAdjacentNodes.containsKey(nodeID) 
 				|| this.disconnectedAdjacentNodes.contains(nodeID) 
@@ -65,11 +65,12 @@ class Graph implements Serializable{
 		}
 
 		this.connectedAdjacentNodes.add(nodeID);		//add to one
+		Collections.sort(this.connectedAdjacentNodes);
 		this.disconnectedAdjacentNodes.remove(nodeID);	//remove from the other
 		this.distTable.put(nodeID, new HashMap<Character, Integer>());
 		//once the adjacent node is connected, it becomes known in the network
 		try {
-		addKnownNode(nodeID);
+			addKnownNode(nodeID);
 		} catch (InputMismatchException e) {
 			//Catch adding in an already known node
 		}
@@ -98,6 +99,7 @@ class Graph implements Serializable{
 			throw new InputMismatchException();
 		}
 		this.knownNodes.add(nodeID);
+		Collections.sort(this.knownNodes);
 		this.distanceVector.put(nodeID, null);
 		//adding a new entry to distanceVector means there is no min yet
 	}
@@ -165,6 +167,33 @@ class Graph implements Serializable{
 		return new DistanceVector(this.thisNodeID, this.distanceVector);
 	}
 
+	void printDVWords() {
+		Integer min;
+		Character nextHop;
+		for (Character known : this.knownNodes) {
+			min = Integer.MAX_VALUE;
+			nextHop = null;
+			for (char adjacent : this.connectedAdjacentNodes) {
+				try {
+					if (min > this.distTable.get(adjacent).get(known)) {
+						min = this.distTable.get(adjacent).get(known);
+						nextHop = adjacent;
+					}
+				} catch (NullPointerException e) {
+					//nulls represent infinite cost
+					//just catch and do nothing
+				}
+			}
+			if (min == Integer.MAX_VALUE) {
+				//means there is no min
+				min = null;
+			}
+			if (nextHop != null) {
+				System.out.printf("shortest path to node %c: the next hop is %c and the cost is %d\n", known, nextHop, this.distanceVector.get(known));
+			}
+		}
+	}
+
 	void printDT() {
 		System.out.println("----------------------------------");
 		System.out.println("Distance Table");
@@ -189,8 +218,31 @@ class Graph implements Serializable{
 		System.out.println("----------------------------------");
 		System.out.println("Distance Vectors");
 		System.out.println("----------------------------------");
-		for (char known : this.knownNodes) {
-			System.out.printf("%c\t|\t%d\n", known, this.distanceVector.get(known));
+		System.out.println("To\t|\tVia\t|\tCost");
+		Integer min;
+		Character nextHop;
+		for (Character known : this.knownNodes) {
+			min = Integer.MAX_VALUE;
+			nextHop = null;
+			for (char adjacent : this.connectedAdjacentNodes) {
+				try {
+					if (min > this.distTable.get(adjacent).get(known)) {
+						min = this.distTable.get(adjacent).get(known);
+						nextHop = adjacent;
+					}
+				} catch (NullPointerException e) {
+					//nulls represent infinite cost
+					//just catch and do nothing
+				}
+			}
+			if (min == Integer.MAX_VALUE) {
+				//means there is no min
+				min = null;
+			}
+			if (nextHop != null) {
+				System.out.printf("%c\t|\t%c\t|\t%d\n", known, nextHop, this.distanceVector.get(known));
+			}
+
 		}
 		System.out.println("----------------------------------");
 	}
