@@ -33,7 +33,7 @@ public class dv_routing_base {
 		Graph g;
 		Queue jobQueue = new Queue();
 		Queue heartBeatQueue = new Queue();
-		int pingInterval = 5000;	//in milliseconds
+		int pingInterval = 2500;	//in milliseconds
 		int convergenceWait = 2500;	//in milliseconds
 
 		if (args.length != 3 && args.length != 4) {
@@ -102,9 +102,14 @@ public class dv_routing_base {
 			return;
 		}
 
-		new HeartBeatProcessor(heartBeatQueue, jobQueue, g);	//starts the heartBeat processing thread
-		new Timer().schedule(new Ping(nodeID, udp), 0, pingInterval);	//start heartbeat thread
-		new Listener(udp, jobQueue, heartBeatQueue);	//starts the listener thread
+		//starts processing heartbeats from other nodes
+		new HeartBeatProcessor(jobQueue, heartBeatQueue, g);
+		//starts sending heartbeats to other nodes
+		new Timer().schedule(new Beat(nodeID, udp), 0, pingInterval);
+		//starts listening for incoming messages
+		new Listener(udp, jobQueue, heartBeatQueue);
+		//starts listening to missed beats
+		new Timer().schedule(new MissedBeatsListener(jobQueue, g), 0, pingInterval);
 
 		//#####################################################################
 		//Everything has been initialised
@@ -125,6 +130,7 @@ public class dv_routing_base {
 					g.printDT();
 					g.printDV();
 					g.printDVWords();
+					g.printDebug();
 					synchronized(jobQueue) {
 						jobQueue.wait();
 					}
@@ -143,8 +149,13 @@ public class dv_routing_base {
 						else if (message instanceof ConnectionSignal) {
 							//ensure the node that caused this signal will have connected
 							//by the time the DV gets there
-							udp.sendToAll(new HeartBeat(nodeID));
-							udp.sendToAll(g.getDV());
+							if (((ConnectionSignal) message).connection() == true && ((ConnectionSignal) message).relayable() == true) {
+								udp.sendToAll(new HeartBeat(nodeID));
+								udp.sendToAll(g.getDV());
+							}
+							else if (((ConnectionSignal) message).connection() == false && ((ConnectionSignal) message).relayable() == true) {
+								udp.sendToAll(message);
+							}
 						} 
 					} else {
 						throw new IllegalArgumentException();
@@ -211,14 +222,15 @@ public class dv_routing_base {
 		private final Graph g;
 		private final Thread t;
 
-		private HeartBeatProcessor (Queue heartBeatQueue, Queue jobQueue, Graph g) {
+		private HeartBeatProcessor (Queue jobQueue, Queue heartBeatQueue, Graph g) {
 			this.heartBeatQueue = heartBeatQueue;
 			this.jobQueue = jobQueue;
 			this.g = g;
 			t = new Thread(this);
-			System.out.println("HeartBeatProcessor running");
 			t.start();
+			
 		}
+		
 
 		@Override
 		public void run() {
@@ -230,16 +242,14 @@ public class dv_routing_base {
 						}
 						Object heartBeat = this.heartBeatQueue.pop();
 						if (heartBeat instanceof HeartBeat) {
-							Boolean action = ((HeartBeat) heartBeat).checkConnection(g);
-							if (action == null) {
-							}
-							if (action != null && action == true) {
+							Boolean action = ((HeartBeat) heartBeat).newConnection(g);
+							if (action == true) {
 								//means currently disconnected, connect
 								this.jobQueue.push(new ConnectionSignal(true, ((HeartBeat) heartBeat).getNodeID()));
-							} else if (action != null && action == false) {
+							}/* else if (action == false) {
 								//action = false, means currently connected, disconnect
 								this.jobQueue.push(new ConnectionSignal(false, ((HeartBeat) heartBeat).getNodeID()));
-							}
+							}*/
 						}
 					}
 				} catch (InterruptedException e) {
@@ -248,8 +258,32 @@ public class dv_routing_base {
 			}
 		}
 	}
+	
+	private static class MissedBeatsListener extends TimerTask {
+		
+		private final Queue jobQueue;
+		private final Graph g;
+		
+		private MissedBeatsListener (Queue jobQueue, Graph g) {
+			this.jobQueue = jobQueue;
+			this.g = g;
+		}
 
-	public static class Listener implements Runnable {
+		@Override
+		public void run() {
+			//periodically decrement missedBeats to all connections
+			//each heartBeat should reset missedBeats counter
+			//when decrementing, check for dead connections
+			//for each deadConnection, push ConnectionSignal disconnect to jobQueue
+			g.incrementMissedBeat();
+			for (Character connection : g.getDeadConnections()) {
+				this.jobQueue.push(new ConnectionSignal(false, connection));
+			}
+			
+		}
+	}
+
+	private static class Listener implements Runnable {
 
 		private final Queue jobQueue;
 		private final Queue heartBeatQueue;
@@ -287,12 +321,12 @@ public class dv_routing_base {
 		}
 	}
 
-	private static class Ping extends TimerTask {
+	private static class Beat extends TimerTask {
 
 		private final UDP udp;
 		private final char nodeID;
 
-		private Ping(char nodeID, UDP udp) {
+		private Beat(char nodeID, UDP udp) {
 			this.nodeID = nodeID;
 			this.udp = udp;
 		}

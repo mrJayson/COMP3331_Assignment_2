@@ -1,5 +1,3 @@
-import java.io.Serializable;
-
 
 
 public class HeartBeat implements Sendable {
@@ -18,16 +16,18 @@ public class HeartBeat implements Sendable {
 		return this.fromNodeID;
 	}
 	
-	public Boolean checkConnection (Graph g) {
-		Boolean action = null;
-		
-		if (!g.connected(fromNodeID)) {
-			//received heartBeat from a disconnected node
-			action = true;
+	public boolean newConnection (Graph g) {
+		boolean newConnection;
+		if (g.connected(fromNodeID)) {
+			//already connected, reset missedBeats counter
+			g.resetMissedBeats(fromNodeID);
+			newConnection = false;
 		}
-
-		
-		return action;
+		else {
+			//received heartBeat from a disconnected node
+			newConnection = true;
+		}
+		return newConnection;
 	}
 
 }
