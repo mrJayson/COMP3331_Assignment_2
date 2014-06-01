@@ -14,11 +14,11 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.InputMismatchException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
-import java.util.TimerTask;
 import java.util.zip.DataFormatException;
 
 public class dv_routing_base {
@@ -90,10 +90,11 @@ public class dv_routing_base {
 		//now initialising variables
 		try {
 			Map<Character, Integer> nodePorts = new HashMap<Character, Integer>();
-			g = initialise(nodeID, config, nodePorts);
-			//g.printDT();
-			//g.printDV();
+			g = initialise(nodeID, poisonReversed, config, nodePorts);
 			udp = new UDP(port, nodePorts);				//open udp connection
+		} catch (InputMismatchException e) {
+			System.err.println("Poisoned Reverse is enabled for a file that is not poisoned reversable");
+			return;
 		} catch (DataFormatException e) {
 			System.err.println("Config file has invalid data");
 			return;
@@ -136,7 +137,7 @@ public class dv_routing_base {
 					g.printDT();
 					g.printDV();
 					g.printDVWords();
-					//g.printDebug();
+					g.printDebug();
 					synchronized(jobQueue) {
 						jobQueue.wait();
 					}
@@ -179,10 +180,9 @@ public class dv_routing_base {
 				e.printStackTrace();
 			}
 		}
-
 	}
 
-	private static Graph initialise(char thisNodeID, File config, Map<Character, Integer> nodePorts) throws DataFormatException, IOException {
+	private static Graph initialise(char thisNodeID, boolean poisonReversed, File config, Map<Character, Integer> nodePorts) throws InputMismatchException, DataFormatException, IOException {
 		Graph g = new Graph(thisNodeID);
 		BufferedReader br = null;
 		FileReader fr = null;
@@ -197,15 +197,33 @@ public class dv_routing_base {
 			num = Integer.parseInt(br.readLine());
 			for (int i = 0; i < num; i++) {
 				String[] inputSplit = br.readLine().split(" ");
+				if ((poisonReversed && inputSplit.length != 4) 
+						&& (poisonReversed && inputSplit.length != 3)) {
+					throw new InputMismatchException();
+				}
+
 				if (inputSplit[0].length() != 1 || !inputSplit[0].matches("[A-Z]")) {
 					throw new IllegalArgumentException();
 				}
 				char nodeID = inputSplit[0].charAt(0);
 				int distance = Integer.parseInt(inputSplit[1]);
-				int port = Integer.parseInt(inputSplit[2]);
+				Integer updateDistance = null;
+				Integer port = null;
+				if (inputSplit.length == 3) {
+					port = Integer.parseInt(inputSplit[2]);
+				}
+				else if (inputSplit.length == 4) {
+					if (poisonReversed) {
+						updateDistance = Integer.parseInt(inputSplit[2]);
+					}
+					port = Integer.parseInt(inputSplit[3]);
+				}
+				g.addAdjacentNode(nodeID, distance, updateDistance);
+				if (port == null) {
+					throw new DataFormatException();
+				}
 				nodePorts.put(nodeID, port);	//link node to port
 
-				g.addAdjacentNode(nodeID, distance);
 			}
 
 		} catch (FileNotFoundException e) {
@@ -221,133 +239,5 @@ public class dv_routing_base {
 			fr.close();
 		}
 		return g;
-	}
-
-	private static class HeartBeatProcessor implements Runnable {
-
-		private final Queue heartBeatQueue;
-		private final Queue jobQueue;
-		private final Graph g;
-		private final Thread t;
-
-		private HeartBeatProcessor (Queue jobQueue, Queue heartBeatQueue, Graph g) {
-			this.heartBeatQueue = heartBeatQueue;
-			this.jobQueue = jobQueue;
-			this.g = g;
-			t = new Thread(this);
-			t.start();
-			
-		}
-		
-
-		@Override
-		public void run() {
-			synchronized (this.heartBeatQueue) {
-				try {
-					while (true) {
-						if (this.heartBeatQueue.isEmpty()) {
-							this.heartBeatQueue.wait();
-						}
-						Object heartBeat = this.heartBeatQueue.pop();
-						if (heartBeat instanceof HeartBeat) {
-							Boolean action = ((HeartBeat) heartBeat).newConnection(g);
-							if (action == true) {
-								//means currently disconnected, connect
-								this.jobQueue.push(new ConnectionSignal(true, ((HeartBeat) heartBeat).getNodeID()));
-							}/* else if (action == false) {
-								//action = false, means currently connected, disconnect
-								this.jobQueue.push(new ConnectionSignal(false, ((HeartBeat) heartBeat).getNodeID()));
-							}*/
-						}
-					}
-				} catch (InterruptedException e) {
-
-				}
-			}
-		}
-	}
-	
-	private static class MissedBeatsListener extends TimerTask {
-		
-		private final Queue jobQueue;
-		private final Graph g;
-		
-		private MissedBeatsListener (Queue jobQueue, Graph g) {
-			this.jobQueue = jobQueue;
-			this.g = g;
-		}
-
-		@Override
-		public void run() {
-			//periodically decrement missedBeats to all connections
-			//each heartBeat should reset missedBeats counter
-			//when decrementing, check for dead connections
-			//for each deadConnection, push ConnectionSignal disconnect to jobQueue
-			g.incrementMissedBeat();
-			for (Character connection : g.getDeadConnections()) {
-				this.jobQueue.push(new ConnectionSignal(false, connection));
-			}
-			
-		}
-	}
-
-	private static class Listener implements Runnable {
-
-		private final Queue jobQueue;
-		private final Queue heartBeatQueue;
-		private final UDP udp;
-		private final Thread t;
-
-		private Listener (UDP udp, Queue jobQueue, Queue heartBeatQueue) {
-			this.jobQueue = jobQueue;
-			this.heartBeatQueue = heartBeatQueue;
-			this.udp = udp;
-			t = new Thread(this);
-			System.out.println("Listener running");
-			t.start();
-		}
-
-		@Override
-		public void run() {
-			try {
-				while (true) {
-					Object readObject = udp.read();
-					if (readObject instanceof HeartBeat) {
-						//System.out.println("Heartbeat from: "+((HeartBeat) readObject).getNodeID());
-						heartBeatQueue.push(readObject);
-					}
-					else if (readObject instanceof Message) {
-						//System.out.println("Message: "+readObject);
-						jobQueue.push(readObject);
-					} else {
-						throw new IOException();
-					}
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
-	private static class Beat extends TimerTask {
-
-		private final UDP udp;
-		private final char nodeID;
-
-		private Beat(char nodeID, UDP udp) {
-			this.nodeID = nodeID;
-			this.udp = udp;
-		}
-
-		@Override
-		public void run() {
-			HeartBeat hb = new HeartBeat(this.nodeID);
-			try {
-				udp.sendToAll(hb);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
 	}
 }

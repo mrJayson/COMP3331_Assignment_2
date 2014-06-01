@@ -19,6 +19,7 @@ public class Graph implements Serializable{
 	private static final long serialVersionUID = 1L;
 	private final char thisNodeID;
 	private final Map<Character, Integer> allAdjacentNodes;
+	private final Map<Character, Integer> nodeUpdateCost;
 	private final List<Character> disconnectedAdjacentNodes;
 	private final List<Character> connectedAdjacentNodes;
 	private final List<Character> knownNodes;
@@ -36,6 +37,7 @@ public class Graph implements Serializable{
 		this.thisNodeID = nodeID;
 
 		this.allAdjacentNodes = new HashMap<Character, Integer>();
+		this.nodeUpdateCost = new HashMap<Character, Integer>();
 		this.disconnectedAdjacentNodes = new ArrayList<Character>();
 		this.connectedAdjacentNodes = new ArrayList<Character>();
 		this.knownNodes = new ArrayList<Character>();
@@ -51,7 +53,7 @@ public class Graph implements Serializable{
 		return this.connectedAdjacentNodes.contains(nodeID);
 	}
 
-	public void addAdjacentNode(Character nodeID, Integer directCost) throws InputMismatchException {
+	public void addAdjacentNode(Character nodeID, Integer directCost, Integer updateCost) throws InputMismatchException {
 		if (this.allAdjacentNodes.containsKey(nodeID) 
 				|| this.disconnectedAdjacentNodes.contains(nodeID) 
 				|| this.connectedAdjacentNodes.contains(nodeID)) {
@@ -59,6 +61,7 @@ public class Graph implements Serializable{
 		}
 		//add node with cost
 		this.allAdjacentNodes.put(nodeID, directCost);
+		this.nodeUpdateCost.put(nodeID, updateCost);
 		//newly added adjacent nodes start as disconnected
 		this.disconnectedAdjacentNodes.add(nodeID);
 	}
@@ -231,6 +234,7 @@ public class Graph implements Serializable{
 
 	public void printDebug() {
 		System.out.println("AllAdjacentNodes: "+this.allAdjacentNodes);
+		System.out.println("nodeUpdateCost: "+this.nodeUpdateCost);
 		System.out.print("DisconnectedAdjacentNodes: ");
 		for (Character c : this.disconnectedAdjacentNodes) {
 			System.out.print("|"+c);
@@ -247,6 +251,7 @@ public class Graph implements Serializable{
 		}
 		System.out.println();
 		System.out.println("distanceVector: "+this.distanceVector);
+		
 
 	}
 
