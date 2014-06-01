@@ -75,7 +75,7 @@ public class dv_routing_base {
 			return;
 		} catch (FileNotFoundException e) {
 			System.err.println("file invalid or not found");
-			System.err.println("file must be in current directory, parent directory or config folder of parent directory");
+			System.err.println("file must be in ~/[CONFIG.TXT] OR ~/../[CONFIG.TXT] OR ~/../config/[CONFIG.TXT]");
 			return;
 		}
 
@@ -127,34 +127,42 @@ public class dv_routing_base {
 					waited++;
 				}
 				else if (jobQueue.isEmpty() && waited >= waitLimit) {
+					System.out.print("\033[H\033[2J");
+					System.out.println("\nRunning node with these settings:\n");
+					System.out.println("NODE_ID: "+nodeID);
+					System.out.println("Port Number: "+port);
+					System.out.println("Config File Path: "+config.getAbsolutePath());
+					System.out.println("Poison Reverse flag: "+(poisonReversed?"on":"off")+"\n");
 					g.printDT();
 					g.printDV();
 					g.printDVWords();
-					g.printDebug();
+					//g.printDebug();
 					synchronized(jobQueue) {
 						jobQueue.wait();
 					}
 				}
 				else if (!jobQueue.isEmpty()) {
 					waited = 0;
-					Object message = jobQueue.pop();
-					if (message instanceof Message) {
-						((Message) message).execute(g);
-						if (message instanceof DistanceVector) {
-							if (((DistanceVector) message).isUpdated()) {
+					Object job = jobQueue.pop();
+					if (job instanceof Message) {
+						((Message) job).execute(g);
+						if (job instanceof DistanceVector) {
+							if (((DistanceVector) job).isUpdated()) {
 								//if distanceTable is updated, send new DV out
 								udp.sendToAll(g.getDV());
 							}
 						}
-						else if (message instanceof ConnectionSignal) {
+						else if (job instanceof ConnectionSignal) {
 							//ensure the node that caused this signal will have connected
 							//by the time the DV gets there
-							if (((ConnectionSignal) message).connection() == true && ((ConnectionSignal) message).relayable() == true) {
+							if (((ConnectionSignal) job).connection() == true && ((ConnectionSignal) job).relayable() == true) {
+								System.out.println("Node "+((ConnectionSignal) job).node()+" connected");
 								udp.sendToAll(new HeartBeat(nodeID));
 								udp.sendToAll(g.getDV());
 							}
-							else if (((ConnectionSignal) message).connection() == false && ((ConnectionSignal) message).relayable() == true) {
-								udp.sendToAll(message);
+							else if (((ConnectionSignal) job).connection() == false && ((ConnectionSignal) job).relayable() == true) {
+								System.out.println("Node "+((ConnectionSignal) job).node()+" disconnected");
+								udp.sendToAll(job);
 							}
 						} 
 					} else {

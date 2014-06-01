@@ -24,10 +24,13 @@ public class ConnectionSignal implements Message {
 	public boolean relayable () {
 		return this.relayable;
 	}
+	
+	public char node() {
+		return this.nodeID;
+	}
 
 	@Override
 	public void execute(Graph g) {
-		System.out.println("CONNECTION");
 		if (this.connection == true) {
 			//connect
 			try {
