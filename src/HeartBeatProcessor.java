@@ -1,4 +1,5 @@
 
+
 public class HeartBeatProcessor implements Runnable {
 
 	private final Queue heartBeatQueue;
@@ -14,7 +15,6 @@ public class HeartBeatProcessor implements Runnable {
 		t.start();
 		
 	}
-	
 
 	@Override
 	public void run() {

@@ -21,14 +21,6 @@ public class ConnectionSignal implements Message {
 		return this.connection;
 	}
 	
-	public boolean relayable () {
-		return this.relayable;
-	}
-	
-	public char node() {
-		return this.nodeID;
-	}
-
 	@Override
 	public void execute(Graph g) {
 		if (this.connection == true) {
@@ -69,6 +61,14 @@ public class ConnectionSignal implements Message {
 			
 		}
 
+	}
+	
+	public char node() {
+		return this.nodeID;
+	}
+
+	public boolean relayable () {
+		return this.relayable;
 	}
 
 }

@@ -4,8 +4,8 @@ import java.util.TimerTask;
 
 public class Beat extends TimerTask {
 
-	private final UDP udp;
 	private final char nodeID;
+	private final UDP udp;
 
 	Beat(char nodeID, UDP udp) {
 		this.nodeID = nodeID;

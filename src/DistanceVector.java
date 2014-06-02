@@ -1,6 +1,4 @@
-import java.util.ArrayList;
 import java.util.InputMismatchException;
-import java.util.List;
 import java.util.Map;
 
 
@@ -10,8 +8,8 @@ public class DistanceVector implements Message {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	private final char nodeID;
 	private final Map<Character, Integer> distanceVector;
+	private final char nodeID;
 	private boolean updated;
 
 	public DistanceVector(char nodeID, Map<Character, Integer> distanceVector) {
@@ -20,18 +18,10 @@ public class DistanceVector implements Message {
 		this.updated = false;
 	}
 
-	public char getNodeID() {
-		return this.nodeID;
-	}
-	
-	public boolean isUpdated() {
-		return this.updated;
-	}
-	
 	public Map<Character, Integer> DV() {
 		return this.distanceVector;
 	}
-
+	
 	@Override
 	public void execute(Graph g) {
 		//given a DV, update g accordingly
@@ -75,5 +65,13 @@ public class DistanceVector implements Message {
 			e.printStackTrace();
 		}
 
+	}
+	
+	public char getNodeID() {
+		return this.nodeID;
+	}
+
+	public boolean isUpdated() {
+		return this.updated;
 	}
 }

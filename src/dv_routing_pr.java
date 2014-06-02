@@ -1,22 +1,11 @@
 
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.InputMismatchException;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.zip.DataFormatException;
@@ -35,7 +24,7 @@ public class dv_routing_pr {
 		Queue jobQueue = new Queue();
 		Queue heartBeatQueue = new Queue();
 		int pingInterval = 2500;	//in milliseconds
-		int convergenceWait = 2500;	//in milliseconds
+		int convergenceWait = 2000;	//in milliseconds
 
 		if (args.length != 3 && args.length != 4 && args.length != 5) {
 			System.err.println("Usage: [NODE_ID] [NODE_PORT] [CONFIG.TXT] [POISONED REVERSE FLAG|-p] [DEBUG|-d]");
@@ -129,7 +118,7 @@ public class dv_routing_pr {
 		//Everything has been initialised
 		//Processes all jobs in queue
 
-		int waitLimit = 20;
+		int waitLimit = 5;
 		int waited = 0;
 		while (true) {
 
@@ -138,7 +127,7 @@ public class dv_routing_pr {
 					//wait a period of time before declaring converged 
 					//to see if there are any other DVs incoming
 					Thread.sleep(convergenceWait/waitLimit);
-					System.out.println(waited);
+					//System.out.println(waited);
 					waited++;
 				}
 				else if (jobQueue.isEmpty() && waited >= waitLimit) {

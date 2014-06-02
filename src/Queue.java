@@ -14,16 +14,15 @@ public class Queue {
 		return this.queue.isEmpty();
 	}
 
+	public synchronized Object pop() {
+		return this.queue.remove(0);
+	}
 
 	public synchronized void push(Object object) {
 		synchronized (this.queue){ 
 			this.queue.add(object);
 			this.notify();
 		}
-	}
-
-	public synchronized Object pop() {
-		return this.queue.remove(0);
 	}
 
 }
