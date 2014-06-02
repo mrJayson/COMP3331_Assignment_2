@@ -53,6 +53,9 @@ public class Graph implements Serializable{
 		}
 		return this.connectedAdjacentNodes.contains(nodeID);
 	}
+	public List<Character> getDisconnectedNodes() {
+		return this.disconnectedAdjacentNodes;
+	}
 
 	public boolean updated() {
 		return this.updated;
@@ -65,6 +68,7 @@ public class Graph implements Serializable{
 				updateDistance(c,c,this.nodeUpdateCost.get(c));
 			}
 		}
+		updateDV();
 	}
 
 	public void addAdjacentNode(Character nodeID, Integer directCost, Integer updateCost) throws InputMismatchException {
@@ -208,7 +212,34 @@ public class Graph implements Serializable{
 		if (!this.connectedAdjacentNodes.contains(viaNode) || !this.knownNodes.contains(toNode)) {
 			throw new InputMismatchException();
 		}
-		this.distTable.get(viaNode).put(toNode, distance);
+		//System.out.println("NODES "+viaNode+" "+toNode+" "+distance);
+		if (viaNode == 'X' && toNode == 'Z' && distance == 65) {
+			try {
+			throw new InputMismatchException();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		if (viaNode.equals(toNode)) {
+			//if the adjacent Node is changed, it affects all other
+			//costs on that via path,
+			//so must update
+			//System.out.println("viaNode "+viaNode);
+			Integer oldCost = getDistance(viaNode, toNode);
+			if (oldCost == null) {//means this is the first entry into this cell
+				this.distTable.get(viaNode).put(toNode, distance);
+			} else {
+				for (Character c : this.distTable.get(viaNode).keySet()) {
+					//this.distTable.get(viaNode).put(c, this.distTable.get(viaNode).get(c) - oldCost + distance);
+					this.distTable.get(viaNode).put(c, Integer.MAX_VALUE);
+				}
+				this.distTable.get(viaNode).put(toNode, distance);
+			}
+
+		} else {
+			this.distTable.get(viaNode).put(toNode, distance);
+		}
+
 		updateDV();
 	}
 

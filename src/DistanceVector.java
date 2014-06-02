@@ -27,6 +27,10 @@ public class DistanceVector implements Message {
 	public boolean isUpdated() {
 		return this.updated;
 	}
+	
+	public Map<Character, Integer> DV() {
+		return this.distanceVector;
+	}
 
 	@Override
 	public void execute(Graph g) {
