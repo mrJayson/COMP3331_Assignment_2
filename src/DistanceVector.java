@@ -53,7 +53,6 @@ public class DistanceVector implements Message {
 				}
 				} catch (InputMismatchException e) {
 					//it will fail for getting its nodeID from knownNodes
-					//e.printStackTrace();
 				} catch (NullPointerException e) {
 					//catches some cases where g.getDistance has not been set yet
 					//do nothing, later DVs will fill it in and be able to continue

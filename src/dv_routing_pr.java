@@ -127,11 +127,9 @@ public class dv_routing_pr {
 					//wait a period of time before declaring converged 
 					//to see if there are any other DVs incoming
 					Thread.sleep(convergenceWait/waitLimit);
-					//System.out.println(waited);
 					waited++;
 				}
 				else if (jobQueue.isEmpty() && waited >= waitLimit) {
-					//Thread.sleep(1000);
 					System.out.print("\033[H\033[2J");
 					System.out.println("\nRunning node with these settings:\n");
 					System.out.println("NODE_ID:\t\t"+nodeID);
@@ -140,7 +138,7 @@ public class dv_routing_pr {
 					System.out.println("Poison Reverse flag:\t"+(poisonReversed?"on":"off"));
 					System.out.println("debug flag:\t\t"+(debug?"on":"off")+"\n");
 					if (debug) {
-						//g.printDebug();
+						g.printDebug();
 						g.printDT();
 						g.printDV();
 					}
@@ -150,7 +148,6 @@ public class dv_routing_pr {
 						if (g.getDisconnectedNodes().size() == 0) {
 							System.out.println("Applying new costs");
 							g.update();
-							//System.out.println("Sending out: "+g.getDV().DV());
 							udp.sendToAll(g.getDV());
 						} else {
 							System.out.println("Waiting for all nodes to be online before applying update");
