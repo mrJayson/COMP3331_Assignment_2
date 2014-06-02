@@ -4,9 +4,9 @@ import java.util.TimerTask;
 public class MissedBeatsListener extends TimerTask {
 	
 	private final Queue jobQueue;
-	private final Graph g;
+	private final Model g;
 	
-	MissedBeatsListener (Queue jobQueue, Graph g) {
+	MissedBeatsListener (Queue jobQueue, Model g) {
 		this.jobQueue = jobQueue;
 		this.g = g;
 	}

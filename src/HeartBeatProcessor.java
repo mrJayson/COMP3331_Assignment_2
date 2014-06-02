@@ -4,10 +4,10 @@ public class HeartBeatProcessor implements Runnable {
 
 	private final Queue heartBeatQueue;
 	private final Queue jobQueue;
-	private final Graph g;
+	private final Model g;
 	private final Thread t;
 
-	HeartBeatProcessor (Queue jobQueue, Queue heartBeatQueue, Graph g) {
+	HeartBeatProcessor (Queue jobQueue, Queue heartBeatQueue, Model g) {
 		this.heartBeatQueue = heartBeatQueue;
 		this.jobQueue = jobQueue;
 		this.g = g;

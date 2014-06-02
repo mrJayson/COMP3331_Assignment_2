@@ -9,14 +9,14 @@ import java.util.Map;
 
 
 
-public class Graph implements Serializable{
+public class Model implements Serializable{
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 	private final Map<Character, Integer> allAdjacentNodes;
 	private final List<Character> connectedAdjacentNodes;
-	private final Map<Character, Integer> connectionStatus;
+	private final Map<Character, Integer> nodesMissedBeats;
 	private final List<Character> disconnectedAdjacentNodes;
 	//distTable is a 2d map so can map char,char to a distance
 	//first char is the via node, second char is the to node
@@ -30,7 +30,7 @@ public class Graph implements Serializable{
 	private final char thisNodeID;
 	private boolean updated;
 
-	public Graph(char nodeID, boolean poisonReversed) {
+	public Model(char nodeID, boolean poisonReversed) {
 		this.thisNodeID = nodeID;
 		this.allAdjacentNodes = new HashMap<Character, Integer>();
 		this.nodeUpdateCost = new HashMap<Character, Integer>();
@@ -39,7 +39,7 @@ public class Graph implements Serializable{
 		this.knownNodes = new ArrayList<Character>();
 		this.distTable = new HashMap<Character, Map<Character, Integer>>();
 		this.distanceVector = new HashMap<Character, Integer>();
-		this.connectionStatus = new HashMap<Character, Integer>();
+		this.nodesMissedBeats = new HashMap<Character, Integer>();
 		this.poisonReversed = poisonReversed;
 		this.updated = false;
 	}
@@ -60,11 +60,11 @@ public class Graph implements Serializable{
 		if (!this.allAdjacentNodes.containsKey(nodeID) 
 				|| !this.disconnectedAdjacentNodes.contains(nodeID) 
 				|| this.connectedAdjacentNodes.contains(nodeID) 
-				|| this.connectionStatus.containsKey(nodeID)) {
+				|| this.nodesMissedBeats.containsKey(nodeID)) {
 			throw new InputMismatchException();
 		}
 
-		this.connectionStatus.put(nodeID, 0);
+		this.nodesMissedBeats.put(nodeID, 0);
 	}
 
 	public void addKnownNode(Character nodeID) throws InputMismatchException {
@@ -78,10 +78,10 @@ public class Graph implements Serializable{
 	}
 
 	public int checkConnectionStatus(Character nodeID) {
-		if (!this.connectionStatus.containsKey(nodeID)) {
+		if (!this.nodesMissedBeats.containsKey(nodeID)) {
 			throw new InputMismatchException();
 		}
-		return this.connectionStatus.get(nodeID);
+		return this.nodesMissedBeats.get(nodeID);
 	}
 
 	public void connectAdjacentNode(Character nodeID) throws InputMismatchException {
@@ -148,8 +148,8 @@ public class Graph implements Serializable{
 
 	public List<Character> getDeadConnections() {
 		List<Character> deadConnections = new ArrayList<Character>();
-		for (Character connection : this.connectionStatus.keySet()) {
-			if (this.connectionStatus.get(connection) >= this.missedBeatsLimit) {
+		for (Character connection : this.nodesMissedBeats.keySet()) {
+			if (this.nodesMissedBeats.get(connection) >= this.missedBeatsLimit) {
 				deadConnections.add(connection);
 			}
 		}
@@ -173,8 +173,8 @@ public class Graph implements Serializable{
 	}
 
 	public void incrementMissedBeat() {
-		for (Character connection : this.connectionStatus.keySet()) {
-			this.connectionStatus.put(connection, this.connectionStatus.get(connection)+1);
+		for (Character connection : this.nodesMissedBeats.keySet()) {
+			this.nodesMissedBeats.put(connection, this.nodesMissedBeats.get(connection)+1);
 		}
 	}
 
@@ -290,21 +290,21 @@ public class Graph implements Serializable{
 		if (!this.allAdjacentNodes.containsKey(nodeID) 
 				|| this.disconnectedAdjacentNodes.contains(nodeID) 
 				|| !this.connectedAdjacentNodes.contains(nodeID)
-				|| !this.connectionStatus.containsKey(nodeID)) {
+				|| !this.nodesMissedBeats.containsKey(nodeID)) {
 			throw new InputMismatchException();
 		}
 
-		this.connectionStatus.remove(nodeID);
+		this.nodesMissedBeats.remove(nodeID);
 	}
 
 	public void resetMissedBeats(Character nodeID) {
 		if (!this.allAdjacentNodes.containsKey(nodeID) 
 				|| this.disconnectedAdjacentNodes.contains(nodeID) 
 				|| !this.connectedAdjacentNodes.contains(nodeID)
-				|| !this.connectionStatus.containsKey(nodeID)) {
+				|| !this.nodesMissedBeats.containsKey(nodeID)) {
 			throw new InputMismatchException();
 		}
-		this.connectionStatus.put(nodeID, 0);
+		this.nodesMissedBeats.put(nodeID, 0);
 	}
 
 	public void update() {

@@ -16,7 +16,7 @@ public class HeartBeat implements Sendable {
 		return this.fromNodeID;
 	}
 	
-	public boolean newConnection (Graph g) {
+	public boolean newConnection (Model g) {
 		boolean newConnection;
 		if (g.connected(fromNodeID)) {
 			//already connected, reset missedBeats counter

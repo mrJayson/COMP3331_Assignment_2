@@ -20,7 +20,7 @@ public class dv_routing_pr {
 		boolean poisonReversed = false;
 		boolean debug = false;
 		UDP udp;
-		Graph g;
+		Model g;
 		Queue jobQueue = new Queue();
 		Queue heartBeatQueue = new Queue();
 		int pingInterval = 2500;	//in milliseconds
@@ -95,13 +95,13 @@ public class dv_routing_pr {
 			g = initialise(nodeID, poisonReversed, config, nodePorts);
 			udp = new UDP(port, nodePorts);				//open udp connection
 		} catch (InputMismatchException e) {
-			System.err.println("Poisoned Reverse is enabled for a file that is not poisoned reversable");
+			System.err.println("Poisoned Reverse is enabled for a file that is not poisoned reversable\n");
 			return;
 		} catch (DataFormatException e) {
-			System.err.println("Config file has invalid data");
+			System.err.println("Config file has invalid data\n");
 			return;
 		} catch (IOException e) {
-			System.err.println("could not create udp object");
+			System.err.println("Could not set up UDP listening on port "+port+"\n");
 			return;
 		}
 
@@ -200,8 +200,8 @@ public class dv_routing_pr {
 		}
 	}
 
-	private static Graph initialise(char thisNodeID, boolean poisonReversed, File config, Map<Character, Integer> nodePorts) throws InputMismatchException, DataFormatException, IOException {
-		Graph g = new Graph(thisNodeID, poisonReversed);
+	private static Model initialise(char thisNodeID, boolean poisonReversed, File config, Map<Character, Integer> nodePorts) throws InputMismatchException, DataFormatException, IOException {
+		Model g = new Model(thisNodeID, poisonReversed);
 		BufferedReader br = null;
 		FileReader fr = null;
 		int num;

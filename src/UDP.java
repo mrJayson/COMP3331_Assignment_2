@@ -27,9 +27,7 @@ public class UDP {
 
 	public UDP (int port, Map<Character, Integer> adjacentNodes) throws IOException {
 		this.serverSocket = new DatagramSocket(port);
-
 		IPAddress = InetAddress.getByName("localhost");
-		
 		this.nodePorts = adjacentNodes;
 	}
 

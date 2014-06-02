@@ -22,7 +22,7 @@ public class ConnectionSignal implements Message {
 	}
 	
 	@Override
-	public void execute(Graph g) {
+	public void execute(Model g) {
 		if (this.connection == true) {
 			//connect
 			try {

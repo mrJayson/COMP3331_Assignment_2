@@ -23,7 +23,7 @@ public class DistanceVector implements Message {
 	}
 	
 	@Override
-	public void execute(Graph g) {
+	public void execute(Model g) {
 		//given a DV, update g accordingly
 		//if there are any new nodes from DV, add them into the graph
 		for (Character node : this.distanceVector.keySet()) {
