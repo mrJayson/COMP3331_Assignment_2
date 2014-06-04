@@ -118,11 +118,15 @@ public class dv_routing_pr {
 		//#####################################################################
 		//Everything has been initialised
 		//Processes all jobs in queue
+		
+		if (poisonReversed) {
+			System.out.println("Please ensure that the nodes that have updated values are updated at the same time");
+			System.out.println("to ensure this, make sure all nodes are running before the first convergence occurs\n");
+		}
 
 		int waitLimit = 99;
 		int waited = 0;
 		while (true) {
-
 			try {
 				if (jobQueue.isEmpty() && waited < waitLimit) {
 					//wait a period of time before declaring converged 

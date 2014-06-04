@@ -13,7 +13,6 @@ public class Listener implements Runnable {
 		this.heartBeatQueue = heartBeatQueue;
 		this.udp = udp;
 		t = new Thread(this);
-		System.out.println("Listener running");
 		t.start();
 	}
 
