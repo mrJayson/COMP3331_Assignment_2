@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.InputMismatchException;
 import java.util.Map;
@@ -186,6 +187,7 @@ public class dv_routing_pr {
 					}
 				}
 			} catch (IllegalArgumentException e) {
+				e.printStackTrace();
 				System.err.println("Received a message that is not a message");
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
@@ -221,15 +223,15 @@ public class dv_routing_pr {
 					throw new IllegalArgumentException();
 				}
 				char nodeID = inputSplit[0].charAt(0);
-				int distance = Integer.parseInt(inputSplit[1]);
-				Integer updateDistance = null;
+				BigDecimal distance = new BigDecimal(inputSplit[1]);
+				BigDecimal updateDistance = null;
 				Integer port = null;
 				if (inputSplit.length == 3) {
 					port = Integer.parseInt(inputSplit[2]);
 				}
 				else if (inputSplit.length == 4) {
 					if (poisonReversed) {
-						updateDistance = Integer.parseInt(inputSplit[2]);
+						updateDistance = new BigDecimal(inputSplit[2]);
 					}
 					port = Integer.parseInt(inputSplit[3]);
 				}

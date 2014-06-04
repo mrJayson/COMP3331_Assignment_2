@@ -1,5 +1,6 @@
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -14,37 +15,37 @@ public class Model implements Serializable{
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	private final Map<Character, Integer> allAdjacentNodes;
+	private final Map<Character, BigDecimal> allAdjacentNodes;
 	private final List<Character> connectedAdjacentNodes;
-	private final Map<Character, Integer> nodesMissedBeats;
+	private final Map<Character, Integer> connectionStatus;
 	private final List<Character> disconnectedAdjacentNodes;
 	//distTable is a 2d map so can map char,char to a distance
 	//first char is the via node, second char is the to node
-	private final Map<Character, Integer> distanceVector;
+	private final Map<Character, BigDecimal> distanceVector;
 	//List of all the nodes this node is aware of
-	private final Map<Character, Map<Character, Integer>> distTable;
+	private final Map<Character, Map<Character, BigDecimal>> distTable;
 	private final List<Character> knownNodes;
 	private final int missedBeatsLimit = 3;
-	private final Map<Character, Integer> nodeUpdateCost;
+	private final Map<Character, BigDecimal> nodeUpdateCost;
 	private final boolean poisonReversed;
 	private final char thisNodeID;
 	private boolean updated;
 
 	public Model(char nodeID, boolean poisonReversed) {
 		this.thisNodeID = nodeID;
-		this.allAdjacentNodes = new HashMap<Character, Integer>();
-		this.nodeUpdateCost = new HashMap<Character, Integer>();
+		this.allAdjacentNodes = new HashMap<Character, BigDecimal>();
+		this.nodeUpdateCost = new HashMap<Character, BigDecimal>();
 		this.disconnectedAdjacentNodes = new ArrayList<Character>();
 		this.connectedAdjacentNodes = new ArrayList<Character>();
 		this.knownNodes = new ArrayList<Character>();
-		this.distTable = new HashMap<Character, Map<Character, Integer>>();
-		this.distanceVector = new HashMap<Character, Integer>();
-		this.nodesMissedBeats = new HashMap<Character, Integer>();
+		this.distTable = new HashMap<Character, Map<Character, BigDecimal>>();
+		this.distanceVector = new HashMap<Character, BigDecimal>();
+		this.connectionStatus = new HashMap<Character, Integer>();
 		this.poisonReversed = poisonReversed;
 		this.updated = false;
 	}
 
-	public void addAdjacentNode(Character nodeID, Integer directCost, Integer updateCost) throws InputMismatchException {
+	public void addAdjacentNode(Character nodeID, BigDecimal directCost, BigDecimal updateCost) throws InputMismatchException {
 		if (this.allAdjacentNodes.containsKey(nodeID) 
 				|| this.disconnectedAdjacentNodes.contains(nodeID) 
 				|| this.connectedAdjacentNodes.contains(nodeID)) {
@@ -60,11 +61,11 @@ public class Model implements Serializable{
 		if (!this.allAdjacentNodes.containsKey(nodeID) 
 				|| !this.disconnectedAdjacentNodes.contains(nodeID) 
 				|| this.connectedAdjacentNodes.contains(nodeID) 
-				|| this.nodesMissedBeats.containsKey(nodeID)) {
+				|| this.connectionStatus.containsKey(nodeID)) {
 			throw new InputMismatchException();
 		}
 
-		this.nodesMissedBeats.put(nodeID, 0);
+		this.connectionStatus.put(nodeID, 0);
 	}
 
 	public void addKnownNode(Character nodeID) throws InputMismatchException {
@@ -78,10 +79,10 @@ public class Model implements Serializable{
 	}
 
 	public int checkConnectionStatus(Character nodeID) {
-		if (!this.nodesMissedBeats.containsKey(nodeID)) {
+		if (!this.connectionStatus.containsKey(nodeID)) {
 			throw new InputMismatchException();
 		}
-		return this.nodesMissedBeats.get(nodeID);
+		return this.connectionStatus.get(nodeID);
 	}
 
 	public void connectAdjacentNode(Character nodeID) throws InputMismatchException {
@@ -93,7 +94,7 @@ public class Model implements Serializable{
 		this.connectedAdjacentNodes.add(nodeID);		//add to one
 		Collections.sort(this.connectedAdjacentNodes);
 		this.disconnectedAdjacentNodes.remove(nodeID);	//remove from the other
-		this.distTable.put(nodeID, new HashMap<Character, Integer>());
+		this.distTable.put(nodeID, new HashMap<Character, BigDecimal>());
 		//once the adjacent node is connected, it becomes known in the network
 		try {
 			addKnownNode(nodeID);
@@ -148,8 +149,8 @@ public class Model implements Serializable{
 
 	public List<Character> getDeadConnections() {
 		List<Character> deadConnections = new ArrayList<Character>();
-		for (Character connection : this.nodesMissedBeats.keySet()) {
-			if (this.nodesMissedBeats.get(connection) >= this.missedBeatsLimit) {
+		for (Character connection : this.connectionStatus.keySet()) {
+			if (this.connectionStatus.get(connection) >= this.missedBeatsLimit) {
 				deadConnections.add(connection);
 			}
 		}
@@ -160,7 +161,7 @@ public class Model implements Serializable{
 		return this.disconnectedAdjacentNodes;
 	}
 
-	public Integer getDistance(Character viaNode, Character toNode) {
+	public BigDecimal getDistance(Character viaNode, Character toNode) {
 		if (!this.connectedAdjacentNodes.contains(viaNode) || !this.knownNodes.contains(toNode)) {
 			throw new InputMismatchException();
 		}
@@ -173,8 +174,8 @@ public class Model implements Serializable{
 	}
 
 	public void incrementMissedBeat() {
-		for (Character connection : this.nodesMissedBeats.keySet()) {
-			this.nodesMissedBeats.put(connection, this.nodesMissedBeats.get(connection)+1);
+		for (Character connection : this.connectionStatus.keySet()) {
+			this.connectionStatus.put(connection, this.connectionStatus.get(connection)+1);
 		}
 	}
 
@@ -219,7 +220,7 @@ public class Model implements Serializable{
 		for (char known : this.knownNodes) {
 			System.out.printf("%c\t", known);
 			for (char adjacent : this.connectedAdjacentNodes) {
-				System.out.printf("%d\t", this.distTable.get(adjacent).get(known));
+				System.out.printf("%s\t", this.distTable.get(adjacent).get(known).stripTrailingZeros().toPlainString());
 			}
 			System.out.println();
 		}
@@ -231,14 +232,14 @@ public class Model implements Serializable{
 		System.out.println("Distance Vectors");
 		System.out.println("----------------------------------");
 		System.out.println("To\t|\tVia\t|\tCost");
-		Integer min;
+		BigDecimal min;
 		Character nextHop;
 		for (Character known : this.knownNodes) {
-			min = Integer.MAX_VALUE;
+			min = BigDecimal.valueOf(Integer.MAX_VALUE);
 			nextHop = null;
 			for (char adjacent : this.connectedAdjacentNodes) {
 				try {
-					if (min > this.distTable.get(adjacent).get(known)) {
+					if (min.compareTo(this.distTable.get(adjacent).get(known)) > 0) {
 						min = this.distTable.get(adjacent).get(known);
 						nextHop = adjacent;
 					}
@@ -247,12 +248,12 @@ public class Model implements Serializable{
 					//just catch and do nothing
 				}
 			}
-			if (min == Integer.MAX_VALUE) {
+			if (min.compareTo(BigDecimal.valueOf(Integer.MAX_VALUE)) == 0) {
 				//means there is no min
 				min = null;
 			}
 			if (nextHop != null) {
-				System.out.printf("%c\t|\t%c\t|\t%d\n", known, nextHop, this.distanceVector.get(known));
+				System.out.printf("%c\t|\t%c\t|\t%s\n", known, nextHop, this.distanceVector.get(known).stripTrailingZeros().toPlainString());
 			}
 
 		}
@@ -260,14 +261,14 @@ public class Model implements Serializable{
 	}
 
 	public void printDVWords() {
-		Integer min;
+		BigDecimal min;
 		Character nextHop;
 		for (Character known : this.knownNodes) {
-			min = Integer.MAX_VALUE;
+			min = BigDecimal.valueOf(Integer.MAX_VALUE);
 			nextHop = null;
 			for (char adjacent : this.connectedAdjacentNodes) {
 				try {
-					if (min > this.distTable.get(adjacent).get(known)) {
+					if (min.compareTo(this.distTable.get(adjacent).get(known)) > 0) {
 						min = this.distTable.get(adjacent).get(known);
 						nextHop = adjacent;
 					}
@@ -276,12 +277,12 @@ public class Model implements Serializable{
 					//just catch and do nothing
 				}
 			}
-			if (min == Integer.MAX_VALUE) {
+			if (min.compareTo(BigDecimal.valueOf(Integer.MAX_VALUE)) == 0) {
 				//means there is no min
 				min = null;
 			}
 			if (nextHop != null) {
-				System.out.printf("shortest path to node %c: the next hop is %c and the cost is %d\n", known, nextHop, this.distanceVector.get(known));
+				System.out.printf("shortest path to node %c: the next hop is %c and the cost is %s\n", known, nextHop, this.distanceVector.get(known).stripTrailingZeros().toPlainString());
 			}
 		}
 	}
@@ -290,21 +291,21 @@ public class Model implements Serializable{
 		if (!this.allAdjacentNodes.containsKey(nodeID) 
 				|| this.disconnectedAdjacentNodes.contains(nodeID) 
 				|| !this.connectedAdjacentNodes.contains(nodeID)
-				|| !this.nodesMissedBeats.containsKey(nodeID)) {
+				|| !this.connectionStatus.containsKey(nodeID)) {
 			throw new InputMismatchException();
 		}
 
-		this.nodesMissedBeats.remove(nodeID);
+		this.connectionStatus.remove(nodeID);
 	}
 
 	public void resetMissedBeats(Character nodeID) {
 		if (!this.allAdjacentNodes.containsKey(nodeID) 
 				|| this.disconnectedAdjacentNodes.contains(nodeID) 
 				|| !this.connectedAdjacentNodes.contains(nodeID)
-				|| !this.nodesMissedBeats.containsKey(nodeID)) {
+				|| !this.connectionStatus.containsKey(nodeID)) {
 			throw new InputMismatchException();
 		}
-		this.nodesMissedBeats.put(nodeID, 0);
+		this.connectionStatus.put(nodeID, 0);
 	}
 
 	public void update() {
@@ -321,30 +322,23 @@ public class Model implements Serializable{
 		return this.updated;
 	}
 
-	public void updateDistance(Character viaNode, Character toNode, int distance) throws InputMismatchException {
+	public void updateDistance(Character viaNode, Character toNode, BigDecimal distance) throws InputMismatchException {
 		if (!this.connectedAdjacentNodes.contains(viaNode) || !this.knownNodes.contains(toNode)) {
 			throw new InputMismatchException();
 		}
-		//System.out.println("NODES "+viaNode+" "+toNode+" "+distance);
-		if (viaNode == 'X' && toNode == 'Z' && distance == 65) {
-			try {
-			throw new InputMismatchException();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
+
 		if (viaNode.equals(toNode)) {
 			//if the adjacent Node is changed, it affects all other
 			//costs on that via path,
 			//so must update
 			//System.out.println("viaNode "+viaNode);
-			Integer oldCost = getDistance(viaNode, toNode);
+			BigDecimal oldCost = getDistance(viaNode, toNode);
 			if (oldCost == null) {//means this is the first entry into this cell
 				this.distTable.get(viaNode).put(toNode, distance);
 			} else {
 				for (Character c : this.distTable.get(viaNode).keySet()) {
 					//this.distTable.get(viaNode).put(c, this.distTable.get(viaNode).get(c) - oldCost + distance);
-					this.distTable.get(viaNode).put(c, Integer.MAX_VALUE);
+					this.distTable.get(viaNode).put(c, new BigDecimal(Integer.MAX_VALUE));
 				}
 				this.distTable.get(viaNode).put(toNode, distance);
 			}
@@ -357,12 +351,12 @@ public class Model implements Serializable{
 	}
 
 	public void updateDV() {
-		Integer min;
+		BigDecimal min;
 		for (char known : this.knownNodes) {
-			min = Integer.MAX_VALUE;
+			min = new BigDecimal(Integer.MAX_VALUE);
 			for (char adjacent : this.connectedAdjacentNodes) {
 				try {
-					if (min > this.distTable.get(adjacent).get(known)) {
+					if (min.compareTo(this.distTable.get(adjacent).get(known)) > 0) {
 						min = this.distTable.get(adjacent).get(known);
 					}
 				} catch (NullPointerException e) {
@@ -370,7 +364,7 @@ public class Model implements Serializable{
 					//just catch and do nothing
 				}
 			}
-			if (min == Integer.MAX_VALUE) {
+			if (min.compareTo(BigDecimal.valueOf(Integer.MAX_VALUE)) == 0) {
 				//means there is no min
 				min = null;
 			}
