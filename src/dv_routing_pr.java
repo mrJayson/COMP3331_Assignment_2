@@ -24,8 +24,8 @@ public class dv_routing_pr {
 		Model g;
 		Queue jobQueue = new Queue();
 		Queue heartBeatQueue = new Queue();
-		int pingInterval = 2500;	//in milliseconds
-		int convergenceWait = 2000;	//in milliseconds
+		int pingInterval = 1500;	//in milliseconds
+		int convergenceWait = 5000;	//in milliseconds
 
 		if (args.length != 3 && args.length != 4 && args.length != 5) {
 			System.err.println("Usage: [NODE_ID] [NODE_PORT] [CONFIG.TXT] [POISONED REVERSE FLAG|-p] [DEBUG|-d]");
@@ -119,7 +119,7 @@ public class dv_routing_pr {
 		//Everything has been initialised
 		//Processes all jobs in queue
 
-		int waitLimit = 5;
+		int waitLimit = 99;
 		int waited = 0;
 		while (true) {
 
@@ -128,6 +128,7 @@ public class dv_routing_pr {
 					//wait a period of time before declaring converged 
 					//to see if there are any other DVs incoming
 					Thread.sleep(convergenceWait/waitLimit);
+					System.out.printf("%d until convergence\r",waitLimit-waited);
 					waited++;
 				}
 				else if (jobQueue.isEmpty() && waited >= waitLimit) {
@@ -173,12 +174,12 @@ public class dv_routing_pr {
 							//ensure the node that caused this signal will have connected
 							//by the time the DV gets there
 							if (((ConnectionSignal) job).connection() == true && ((ConnectionSignal) job).relayable() == true) {
-								System.out.println("Node "+((ConnectionSignal) job).node()+" connected");
+								System.out.println("Node "+((ConnectionSignal) job).node()+" has connected");
 								udp.sendToAll(new HeartBeat(nodeID));
 								udp.sendToAll(g.getDV());
 							}
 							else if (((ConnectionSignal) job).connection() == false && ((ConnectionSignal) job).relayable() == true) {
-								System.out.println("Node "+((ConnectionSignal) job).node()+" disconnected");
+								System.out.println("Node "+((ConnectionSignal) job).node()+" has disconnected");
 								udp.sendToAll(job);
 							}
 						} 
