@@ -214,8 +214,7 @@ public class dv_routing_pr {
 			num = Integer.parseInt(br.readLine());
 			for (int i = 0; i < num; i++) {
 				String[] inputSplit = br.readLine().split(" ");
-				if ((poisonReversed && inputSplit.length != 4) 
-						&& (poisonReversed && inputSplit.length != 3)) {
+				if ((poisonReversed && inputSplit.length != 4)) {
 					throw new InputMismatchException();
 				}
 
@@ -249,8 +248,6 @@ public class dv_routing_pr {
 			throw new DataFormatException();
 		} catch (IndexOutOfBoundsException e) {
 			throw new DataFormatException();
-		} catch (Exception e) {
-			e.printStackTrace();
 		} finally {
 			br.close();
 			fr.close();
